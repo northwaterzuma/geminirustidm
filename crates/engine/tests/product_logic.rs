@@ -126,11 +126,16 @@ fn test_weak_etag_is_not_strong_validator() {
     let weak = v(Some("W/\"weak-1\""), Some(1000));
     assert!(!weak.is_strong_etag);
     assert!(weak.if_range_header().is_none()); // must not be used for If-Range
-    // A weak ETag alone (no Last-Modified) cannot support reliable cross-session resume.
+    // A weak ETag is never a strong validator: product refuses reliable resume
+    // even when Last-Modified is also present (conservative, spec-aligned).
+    assert!(!weak.can_resume_reliably());
     let weak_only = SourceValidator::from_headers(Some("W/\"weak-1\""), None, Some(1000), None);
     assert!(!weak_only.can_resume_reliably());
-    // With a Last-Modified validator the source can still resume reliably.
-    assert!(weak.can_resume_reliably());
+    // Strong ETag and Last-Modified-only sources remain resumable.
+    let strong = v(Some("\"strong-1\""), Some(1000));
+    assert!(strong.can_resume_reliably());
+    let lm_only = SourceValidator::from_headers(None, Some("Mon, 16 Nov 2026 00:00:00 GMT"), Some(1000), None);
+    assert!(lm_only.can_resume_reliably());
 }
 
 #[test]
