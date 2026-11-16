@@ -128,3 +128,27 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - 源码侧最新测试实测：`cargo test --workspace` 三平台均 **54 passed / 0 failed**（rustcatch 仓库 run 43858104281，job 133267612430）。
 - 保留原 `northwaterzuma/rustcatch` 仓库不删除；wbhy4falshv1 为本次要求的交付仓库。
 - needs_env 门槛不变：GUI 真机、真实浏览器接管、授权在线 YouTube、安装签名、受控 FTPS/AD、macOS/Linux 桌面行为仍未验证，不得写成通过。
+
+## GUI 菜单/添加地址无响应修复（2026-11-16）
+
+用户反馈：顶部菜单点击无反应；地址栏填入 `https://youtu.be/l7sCL3geF0U` 后点击“添加地址 (Add URL)”无反应。
+
+根因：
+
+- `crates/app/src/app.rs` 原第 8 行的 `任务(T) 文件(F) 下载(D) 查看(V) 帮助(H)` 是静态 `ui.label`，不是 egui 菜单按钮；“选项 / 计划任务 / 开始队列 / 停止队列 / 站点抓取”同样只是静态 label。
+- “添加地址”按钮原先只把 `status_message` 改成一行小字，没有打开 UI-02/UI-03 窗口，也没有调用 `TaskCoordinator::add_task`；用户操作没有可见结果。
+
+修复（提交 `8b70ee9` + `490af44`）：
+
+- `crates/app/src/app.rs`：把顶部占位文字改为五个真实 `ui.menu_button`，每个菜单项通过 `AppAction` 分发；把工具栏静态 label 改为带禁用状态真实按钮；任务表支持单击/Ctrl/Shift 多选、右键菜单和状态更新。
+- `crates/app/src/ui.rs`：新增 `AppAction`、`UiDialog` 与 UI 状态字段；地址栏已有 URL 时，点击“添加地址”会直接调用 `prepare_add_url` 打开“下载信息”窗口；确认后调用唯一状态写入者 `TaskCoordinator::add_task`，YouTube 地址通过 `extract_youtube_identity` 绑定 `platform_media_id` 与 `MediaIntent`。
+- “恢复 / 停止 / 开始队列 / 停止队列 / 移除记录”通过 `TaskCoordinator::control_task` 改任务状态，不再只改提示文字。
+- 地址栏限制 280px 并加入提示文字，避免按钮在 1024 宽度下被挤出视野。
+- 新增 `crates/app/tests/ui_actions.rs`：4 项真实 Rust 测试，覆盖 YouTube URL 解析、任务创建、空 URL 拒绝、菜单动作分发和“地址已有内容时一键进入下载信息窗”。
+
+验证：
+
+- 本地 `cargo +stable check --workspace --all-targets` 通过。
+- 本机 `cargo test` 仍因缺少 `dlltool.exe` 无法链接测试二进制；真实测试放 GitHub Actions。
+- `wbhy4falshv1/main` CI run **43864085628**：4/4 jobs success；Windows job **58 passed / 0 failed**，其中新增 UI 测试 **4 passed / 0 failed**。证据：`evidence/CI-43864085628/RESULTS.md`。
+- 该结果证明编译、格式、Clippy、58 项自动化测试和契约套件通过；**不等于** GUI 真机点击验收通过。用户截图所指具体窗口仍需在新版二进制上真机确认，GUI 真机继续记为 `needs_env`。
