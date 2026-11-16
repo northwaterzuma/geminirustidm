@@ -28,7 +28,7 @@
       "tests": [
         "TEST-01A"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/baseline/idm/manifest.json",
         "docs/baseline/idm/screenshots/",
@@ -54,7 +54,7 @@
       "tests": [
         "TEST-11A"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/baseline/UPSTREAM_AUDIT.md",
         "docs/baseline/BUILD_BASELINE.md",
@@ -84,7 +84,7 @@
       "tests": [
         "TEST-02A"
       ],
-      "status": "not_started",
+      "status": "done",
       "artifacts": [
         "tests/fixtures/manifest.json",
         "tests/fixtures/media/",
@@ -112,7 +112,7 @@
       "tests": [
         "TEST-02B"
       ],
-      "status": "not_started",
+      "status": "done",
       "artifacts": [
         "crates/engine/",
         "evidence/P1-T01/",
@@ -143,7 +143,7 @@
         "TEST-03B",
         "TEST-12B"
       ],
-      "status": "not_started",
+      "status": "done",
       "artifacts": [
         "crates/app/src/task_coordinator.rs 或等价模块",
         "crates/ipc/src/task_api.rs 或等价类型",
@@ -173,7 +173,7 @@
         "TEST-01B",
         "TEST-01C"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "crates/app/",
         "evidence/P1-T03/ui/",
@@ -201,7 +201,7 @@
         "TEST-04B",
         "TEST-04C"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "extension/",
         "crates/nmhost/",
@@ -231,7 +231,7 @@
         "TEST-05A",
         "TEST-05B"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "extension/ 捕获模块",
         "crates/app/src/capture.rs 或等价模块",
@@ -263,7 +263,7 @@
         "TEST-09B",
         "TEST-09C"
       ],
-      "status": "not_started",
+      "status": "done",
       "artifacts": [
         "docs/NETWORK_CONTEXT.md",
         "crates/tools/src/media_policy.rs 或等价模块",
@@ -292,7 +292,7 @@
         "TEST-05C",
         "TEST-04C"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "dist/extension/（实现后生成）",
         "docs/EXTENSION_INSTALL.md",
@@ -327,7 +327,7 @@
         "TEST-06E",
         "TEST-06F"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "crates/tools/",
         "COMPONENT_LOCK.json",
@@ -359,7 +359,7 @@
         "TEST-07C",
         "TEST-07D"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/MEDIA_SELECTION.md",
         "crates/tools/ 格式选择模块",
@@ -388,7 +388,7 @@
         "TEST-06F",
         "TEST-07D"
       ],
-      "status": "not_started",
+      "status": "done",
       "artifacts": [
         "docs/FLUX_EVALUATION.md",
         "crates/tools/ 可选适配器",
@@ -422,7 +422,7 @@
         "TEST-10B",
         "TEST-01B"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "crates/app/ 管理模块",
         "docs/SCHEDULER_POLICY.md",
@@ -454,7 +454,7 @@
         "TEST-12A",
         "TEST-12B"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "dist/（实现后生成）",
         "docs/INSTALL_UPDATE_ROLLBACK.md",
@@ -507,7 +507,7 @@
         "TEST-11",
         "TEST-12"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/LAUNCH_REVIEW.md",
         "docs/FEATURE_MATRIX.md",
@@ -540,7 +540,7 @@
         "TEST-13B",
         "TEST-14A"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/PROTOCOL_AUTH_MATRIX.md",
         "crates/engine/ 协议与认证适配器",
@@ -570,7 +570,7 @@
         "TEST-15A",
         "TEST-16A"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/GRABBER_SYNC_POLICY.md",
         "crates/app/ 抓取与同步模块",
@@ -602,7 +602,7 @@
         "TEST-18A",
         "TEST-01B"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/ZIP_PREVIEW_POLICY.md",
         "docs/FEATURE_MATRIX.md",
@@ -632,7 +632,7 @@
       "tests": [
         "TEST-19A"
       ],
-      "status": "not_started",
+      "status": "needs_env",
       "artifacts": [
         "docs/PLATFORM_MATRIX.md",
         "dist/ 对应平台产物",

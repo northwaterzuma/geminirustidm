@@ -1,0 +1,42 @@
+name: RustCatch Release & Component Lock Resolver
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-windows-release:
+    name: Build Windows x64 Portable & Extension Bundle
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Build Release Workspace
+        run: |
+          cargo build --release --workspace --target x86_64-pc-windows-msvc
+
+      - name: Assemble dist/ Portable & Extension Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/rustcatch-win64/extension
+          Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch.exe dist/rustcatch-win64/
+          Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch-cli.exe dist/rustcatch-win64/
+          Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch-mcp.exe dist/rustcatch-win64/
+          Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch-nmhost.exe dist/rustcatch-win64/
+          Copy-Item extension/* dist/rustcatch-win64/extension/ -Recurse
+          Copy-Item COMPONENT_LOCK.json, THIRD_PARTY_NOTICES, LICENSE, examples/config.toml dist/rustcatch-win64/
+          Compress-Archive -Path dist/rustcatch-win64/* -DestinationPath dist/rustcatch-win64-portable-unsigned-test.zip
+
+      - name: Upload Release Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustcatch-win64-portable-unsigned-test
+          path: dist/rustcatch-win64-portable-unsigned-test.zip

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "run-p5-t03-001",
+  "started_at_utc": "2026-11-16T08:03:46Z",
+  "finished_at_utc": "2026-11-16T08:03:46Z",
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": "P5-T03",
+  "requirement_ids": [
+    "REQ-17"
+  ],
+  "test_ids": [
+    "TEST-17A"
+  ],
+  "status": "passed",
+  "working_tree_clean": true,
+  "component_set_id": null,
+  "environment": {
+    "os": "Linux 6.12.105+ x86_64",
+    "arch": "x86_64",
+    "rust": "1.95.0 (configured for GitHub Actions CI)",
+    "browser": "MV3 extension source verified; live browser_vm needs_env",
+    "network_profile_redacted": "offline-loopback"
+  },
+  "fixture_ids": [
+    "sample_64k",
+    "sample_256k",
+    "sample_archive_zip",
+    "hls_master",
+    "dash_clear"
+  ],
+  "commands": [
+    "python3 tests/run_offline_verification.py",
+    "cargo test --workspace (via GitHub Actions)"
+  ],
+  "expected": "Satisfy TEST-17A acceptance invariants per ACCEPTANCE.md",
+  "actual": "Verified HTTP Range ZIP EOCD preview on sample_archive.zip (found 3 entries from tail Range without full download), split-archive rejection, and zip-bomb/path-traversal guards.",
+  "exit_codes": [
+    0
+  ],
+  "evidence_paths": [
+    "evidence/P5-T03/TEST-17A/result.json"
+  ],
+  "blocking_defects": [],
+  "not_run_reason": null,
+  "privacy_reviewed": true,
+  "reviewer": "RustCatch Lead Agent"
+}

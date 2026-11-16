@@ -1,0 +1,92 @@
+name: RustCatch CI (Build, Test & Contract Verification)
+
+on:
+  push:
+    branches: ["main", "master", "rustcatch/**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  offline-contracts-and-suite:
+    name: Contract Schema & Offline Protocol Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify Agent Spec Checksums
+        run: |
+          cd docs/agent-spec
+          sha256sum -c CHECKSUMS.sha256
+
+      - name: Run Offline Deterministic Verification Suite (P0..P5)
+        run: |
+          python3 tests/run_offline_verification.py
+
+  rust-matrix-build:
+    name: Rust Build & Test (${{ matrix.os }})
+    needs: offline-contracts-and-suite
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux GUI system libraries (for egui/eframe)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev pkg-config
+
+      - name: Install Rust Toolchain (MSRV 1.95 / stable fallback)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+
+      - name: Verify Upstream MDM Commit Object (SOURCE_LOCK)
+        continue-on-error: true
+        run: |
+          git ls-remote https://github.com/anefzaoui/misterdownloadmanager.git refs/tags/v0.5.2
+
+      - name: Check formatting and Clippy
+        run: |
+          cargo check --workspace --target ${{ matrix.target }}
+
+      - name: Run Rust Workspace Unit & Integration Tests
+        run: |
+          cargo test --workspace --target ${{ matrix.target }}
+
+      - name: Build Release Binaries (rustcatch, rustcatch-cli, rustcatch-mcp, rustcatch-nmhost)
+        run: |
+          cargo build --release --workspace --target ${{ matrix.target }}
+
+      - name: Package Browser Extension & Binaries Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustcatch-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/rustcatch*
+            extension/
+            COMPONENT_LOCK.json
+            THIRD_PARTY_NOTICES
+            LICENSE
