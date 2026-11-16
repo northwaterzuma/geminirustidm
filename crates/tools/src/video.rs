@@ -44,6 +44,35 @@ pub fn is_ephemeral_playback_chunk(url: &str) -> bool {
     url.contains("googlevideo.com/videoplayback") && (url.contains("&range=") || url.contains("?range=") || url.contains("&rn="))
 }
 
+/// Recovers a clean media page URL from a yt-dlp "Following redirect to" line
+/// that landed on a Weibo visitor/passport gate. The gate URL carries the real
+/// target in its `url=` query parameter, which yt-dlp's generic extractor cannot
+/// handle but the dedicated WeiboVideo extractor can.
+///
+/// Never follows network redirects itself: it only parses text yt-dlp already saw.
+pub fn extract_weibo_visitor_target(line: &str) -> Option<String> {
+    const MARKER: &str = "Following redirect to ";
+    let redirected = line.split_once(MARKER)?.1.trim();
+    let parsed = url::Url::parse(redirected).ok()?;
+    let host = parsed.host_str()?.to_ascii_lowercase();
+    let is_gate = host == "passport.weibo.com"
+        || host == "weibo.com" && parsed.path().starts_with("/visitor/");
+    if !is_gate {
+        return None;
+    }
+    let target = parsed
+        .query_pairs()
+        .find(|(key, _)| key == "url")?
+        .1
+        .into_owned();
+    let target_url = url::Url::parse(&target).ok()?;
+    let target_host = target_url.host_str()?.to_ascii_lowercase();
+    if !(target_host == "weibo.com" || target_host.ends_with(".weibo.com")) {
+        return None;
+    }
+    Some(target)
+}
+
 /// Normalizes YouTube Watch and Shorts URLs into `(extractor, platform_media_id)`.
 pub fn extract_youtube_identity(page_url: &str) -> Option<(String, String)> {
     let parsed = url::Url::parse(page_url).ok()?;

@@ -1,7 +1,10 @@
 //! Background media worker. The egui thread never spawns or waits on processes.
 
 use mdm_ipc::{ErrorCode, ErrorDetail, MediaIntent, MediaKind};
-use mdm_tools::{ComponentLockManifest, build_ytdlp_command, classify_ytdlp_stderr};
+use mdm_tools::{
+    ComponentLockManifest, build_ytdlp_command, classify_ytdlp_stderr,
+    extract_weibo_visitor_target,
+};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -320,140 +323,172 @@ fn handle_request(request: StartRequest, event_tx: &Sender<WorkerEvent>) {
         &request.task_id,
         format!("下载目录: {}", out_dir.display()),
     );
-    let spec = match build_ytdlp_command(
-        &ytdlp_bin,
-        ffmpeg_bin.parent().unwrap_or(&root),
-        &deno_bin,
-        "",
-        format_expr(request.media_intent.as_ref()),
-        &output_template(&request, &out_dir),
-        &request.page_url,
-        4,
-    ) {
-        Ok(spec) => spec,
-        Err(error) => {
-            log(event_tx, &request.task_id, &error.message);
-            fail(event_tx, &request.task_id, &request.attempt_id, error);
-            return;
-        }
-    };
-    log(
-        event_tx,
-        &request.task_id,
-        format!(
-            "执行命令: {}（argv 由受控构造器生成，不经 shell）",
-            spec.executable
-        ),
-    );
-
-    let mut command = Command::new(&spec.executable);
-    command.args(&spec.args);
-    command.env_clear();
-    for key in ["SystemRoot", "TEMP", "TMP"] {
-        if let Ok(value) = std::env::var(key) {
-            command.env(key, value);
-        }
-    }
-    command.envs(spec.clean_env.clone());
-    command.stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    let mut child = match command.spawn() {
-        Ok(child) => child,
-        Err(error) => {
-            let detail = ErrorDetail {
-                code: ErrorCode::ToolUnavailable,
-                message: format!("yt-dlp 启动失败: {}", error),
-                retryable: false,
-                retry_after_ms: None,
-            };
-            log(event_tx, &request.task_id, &detail.message);
-            fail(event_tx, &request.task_id, &request.attempt_id, detail);
-            return;
-        }
-    };
-    let stdout = child.stdout.take().expect("stdout piped");
-    let stderr = child.stderr.take().expect("stderr piped");
-    let stderr_thread = thread::spawn(move || {
-        BufReader::new(stderr)
-            .lines()
-            .filter_map(Result::ok)
-            .collect::<Vec<_>>()
-            .join("\n")
-    });
-
-    for line_result in BufReader::new(stdout).lines() {
-        let line = match line_result {
-            Ok(line) => line,
-            Err(error) => {
-                log(
-                    event_tx,
-                    &request.task_id,
-                    format!("读取 stdout 失败: {}", error),
-                );
-                break;
-            }
-        };
-        log(event_tx, &request.task_id, line.clone());
-        if let Some(bytes) = parse_downloaded_bytes(&line) {
-            let _ = event_tx.send(WorkerEvent::Progress {
-                task_id: request.task_id.clone(),
-                attempt_id: request.attempt_id.clone(),
-                bytes,
-            });
-        }
-    }
-
-    let status = child.wait();
-    let stderr_text = stderr_thread.join().unwrap_or_default();
-    if !stderr_text.trim().is_empty() {
+    // Run yt-dlp with a controlled argv. Returns (success, stderr, all stdout lines).
+    // stdout lines are retained so a Weibo visitor-gate redirect can be recovered
+    // on failure and the real media page retried once.
+    let run_once = |page_url: &str,
+                    event_tx: &Sender<WorkerEvent>,
+                    request: &StartRequest|
+     -> Result<(bool, String, Vec<String>), ErrorDetail> {
+        let spec = build_ytdlp_command(
+            &ytdlp_bin,
+            ffmpeg_bin.parent().unwrap_or(&root),
+            &deno_bin,
+            "",
+            format_expr(request.media_intent.as_ref()),
+            &output_template(request, &out_dir),
+            page_url,
+            4,
+        )?;
         log(
             event_tx,
             &request.task_id,
-            format!("yt-dlp stderr: {}", stderr_text),
+            format!(
+                "执行命令: {}（argv 由受控构造器生成，不经 shell）",
+                spec.executable
+            ),
         );
-    }
-    match status {
-        Ok(status) if status.success() => {
-            match finalize_output(&out_dir, &request.file_name_hint, &ffprobe_bin) {
-                Ok(summary) => log(event_tx, &request.task_id, summary),
-                Err(error) => log(
-                    event_tx,
-                    &request.task_id,
-                    format!("成品校验提示: {}", error),
-                ),
+
+        let mut command = Command::new(&spec.executable);
+        command.args(&spec.args);
+        command.env_clear();
+        for key in ["SystemRoot", "TEMP", "TMP"] {
+            if let Ok(value) = std::env::var(key) {
+                command.env(key, value);
             }
-            let _ = event_tx.send(WorkerEvent::Completed {
-                task_id: request.task_id.clone(),
-                attempt_id: request.attempt_id.clone(),
-            });
         }
-        Ok(status) => {
-            let (_, error) = classify_ytdlp_stderr(&stderr_text);
-            let error = if stderr_text.trim().is_empty() {
-                ErrorDetail {
-                    code: ErrorCode::InternalError,
-                    message: format!("yt-dlp 退出码 {}，且 stderr 为空", status),
-                    retryable: false,
-                    retry_after_ms: None,
+        command.envs(spec.clean_env.clone());
+        command.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+        let mut child = command.spawn().map_err(|error| ErrorDetail {
+            code: ErrorCode::ToolUnavailable,
+            message: format!("yt-dlp 启动失败: {}", error),
+            retryable: false,
+            retry_after_ms: None,
+        })?;
+        let stdout = child.stdout.take().expect("stdout piped");
+        let stderr = child.stderr.take().expect("stderr piped");
+        let stderr_thread = thread::spawn(move || {
+            BufReader::new(stderr)
+                .lines()
+                .filter_map(Result::ok)
+                .collect::<Vec<_>>()
+                .join("\n")
+        });
+
+        let mut stdout_lines = Vec::new();
+        for line_result in BufReader::new(stdout).lines() {
+            let line = match line_result {
+                Ok(line) => line,
+                Err(error) => {
+                    log(
+                        event_tx,
+                        &request.task_id,
+                        format!("读取 stdout 失败: {}", error),
+                    );
+                    break;
                 }
-            } else {
-                error
             };
-            fail(event_tx, &request.task_id, &request.attempt_id, error);
+            log(event_tx, &request.task_id, line.clone());
+            if let Some(bytes) = parse_downloaded_bytes(&line) {
+                let _ = event_tx.send(WorkerEvent::Progress {
+                    task_id: request.task_id.clone(),
+                    attempt_id: request.attempt_id.clone(),
+                    bytes,
+                });
+            }
+            stdout_lines.push(line);
         }
-        Err(error) => {
-            fail(
+
+        let status = child.wait().map_err(|error| ErrorDetail {
+            code: ErrorCode::InternalError,
+            message: format!("等待 yt-dlp 失败: {}", error),
+            retryable: false,
+            retry_after_ms: None,
+        })?;
+        let stderr_text = stderr_thread.join().unwrap_or_default();
+        if !stderr_text.trim().is_empty() {
+            log(
                 event_tx,
                 &request.task_id,
-                &request.attempt_id,
-                ErrorDetail {
-                    code: ErrorCode::InternalError,
-                    message: format!("等待 yt-dlp 失败: {}", error),
-                    retryable: false,
-                    retry_after_ms: None,
-                },
+                format!("yt-dlp stderr: {}", stderr_text),
             );
         }
+        Ok((status.success(), stderr_text, stdout_lines))
+    };
+
+    let mut current_url = request.page_url.clone();
+    let (success, stderr_text) = match run_once(&current_url, event_tx, &request) {
+        Ok((true, stderr, _)) => (true, stderr),
+        Ok((false, stderr, stdout_lines)) => {
+            let recovered = stdout_lines
+                .iter()
+                .find_map(|line| extract_weibo_visitor_target(line));
+            if let Some(real_url) = recovered.filter(|url| url != &current_url) {
+                log(
+                    event_tx,
+                    &request.task_id,
+                    format!(
+                        "检测到微博访客校验跳转，已从重定向中还原真实地址并重试一次: {}",
+                        real_url
+                    ),
+                );
+                current_url = real_url;
+                match run_once(&current_url, event_tx, &request) {
+                    Ok((ok, err, _)) => (ok, err),
+                    Err(error) => {
+                        fail(event_tx, &request.task_id, &request.attempt_id, error);
+                        return;
+                    }
+                }
+            } else {
+                let (_, error) = classify_ytdlp_stderr(&stderr);
+                let error = if stderr.trim().is_empty() {
+                    ErrorDetail {
+                        code: ErrorCode::InternalError,
+                        message: "yt-dlp 失败且 stderr 为空".to_string(),
+                        retryable: false,
+                        retry_after_ms: None,
+                    }
+                } else {
+                    error
+                };
+                fail(event_tx, &request.task_id, &request.attempt_id, error);
+                return;
+            }
+        }
+        Err(error) => {
+            fail(event_tx, &request.task_id, &request.attempt_id, error);
+            return;
+        }
+    };
+
+    if success {
+        match finalize_output(&out_dir, &request.file_name_hint, &ffprobe_bin) {
+            Ok(summary) => log(event_tx, &request.task_id, summary),
+            Err(error) => log(
+                event_tx,
+                &request.task_id,
+                format!("成品校验提示: {}", error),
+            ),
+        }
+        let _ = event_tx.send(WorkerEvent::Completed {
+            task_id: request.task_id.clone(),
+            attempt_id: request.attempt_id.clone(),
+        });
+    } else {
+        let (_, error) = classify_ytdlp_stderr(&stderr_text);
+        let error = if stderr_text.trim().is_empty() {
+            ErrorDetail {
+                code: ErrorCode::InternalError,
+                message: "yt-dlp 失败且 stderr 为空".to_string(),
+                retryable: false,
+                retry_after_ms: None,
+            }
+        } else {
+            error
+        };
+        fail(event_tx, &request.task_id, &request.attempt_id, error);
     }
 }
 

@@ -5,7 +5,7 @@ use mdm_ipc::ErrorCode;
 use mdm_tools::proc::build_ytdlp_command;
 use mdm_tools::streams::DrmStatus;
 use mdm_tools::streams::{parse_dash_manifest, parse_hls_manifest, resolve_and_validate_media_uri};
-use mdm_tools::video::extract_youtube_identity;
+use mdm_tools::video::{extract_weibo_visitor_target, extract_youtube_identity};
 use std::path::Path;
 
 const BASE: &str = "https://cdn.example.invalid/hls/master.m3u8";
@@ -169,6 +169,36 @@ fn test_youtube_watch_shorts_and_you_be_identity() {
     );
     assert_eq!(
         extract_youtube_identity("https://example.invalid/watch?v=x"),
+        None
+    );
+}
+
+// ---------- Weibo visitor-gate redirect recovery ----------
+
+#[test]
+fn test_weibo_visitor_redirect_recovers_real_media_url() {
+    let line = "[redirect] Following redirect to https://passport.weibo.com/visitor/visitor?entry=krvideo&a=enter&url=https%3A%2F%2Fweibo.com%2Ftv%2Fshow%2F1034%3A5364596685602859%3Ffrom%3Dold_pc_videoshow&domain=.weibo.com";
+    assert_eq!(
+        extract_weibo_visitor_target(line),
+        Some("https://weibo.com/tv/show/1034:5364596685602859?from=old_pc_videoshow".into())
+    );
+}
+
+#[test]
+fn test_non_visitor_redirects_are_ignored() {
+    assert_eq!(
+        extract_weibo_visitor_target("[redirect] Following redirect to https://example.com/video"),
+        None
+    );
+    assert_eq!(
+        extract_weibo_visitor_target("[generic] unrelated line"),
+        None
+    );
+    // Gate whose url= target is not a weibo host must be rejected.
+    assert_eq!(
+        extract_weibo_visitor_target(
+            "[redirect] Following redirect to https://passport.weibo.com/visitor/visitor?url=https%3A%2F%2Fevil.example%2Fx"
+        ),
         None
     );
 }
