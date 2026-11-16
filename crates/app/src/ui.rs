@@ -39,6 +39,7 @@ pub enum UiDialog {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AppAction {
     OpenAddUrl,
+    PrepareAddUrl(String),
     OpenDownloadInfo,
     StartQueue,
     StopQueue,
@@ -547,6 +548,11 @@ impl RustCatchDesktopApp {
                 self.dialog_error = None;
                 self.open_dialog = Some(UiDialog::AddUrl);
                 self.status_message = "已打开“添加地址”窗口".to_string();
+            }
+            AppAction::PrepareAddUrl(url) => {
+                if !self.prepare_add_url(&url) {
+                    self.open_dialog = Some(UiDialog::AddUrl);
+                }
             }
             AppAction::OpenDownloadInfo => self.open_download_info_for_selected(),
             AppAction::StartQueue => self.set_queue_running(true),

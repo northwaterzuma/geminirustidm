@@ -40,6 +40,18 @@ fn empty_url_reports_error_and_does_not_create_task() {
 }
 
 #[test]
+fn prepare_add_url_action_skips_the_extra_click_when_address_is_present() {
+    let mut app = RustCatchDesktopApp::default();
+
+    app.apply_action(AppAction::PrepareAddUrl(
+        "https://youtu.be/l7sCL3geF0U".to_string(),
+    ));
+
+    assert!(matches!(app.open_dialog, Some(UiDialog::DownloadInfo)));
+    assert_eq!(app.add_url_input, "https://youtu.be/l7sCL3geF0U");
+}
+
+#[test]
 fn menu_actions_open_visible_dialogs() {
     let mut app = RustCatchDesktopApp::default();
 

@@ -103,12 +103,21 @@ impl eframe::App for RustCatchDesktopApp {
             let states = compute_toolbar_states(&selected, any_running);
 
             ui.horizontal(|ui| {
-                ui.text_edit_singleline(&mut self.add_url_input);
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.add_url_input)
+                        .desired_width(280.0)
+                        .hint_text("输入下载直链或视频页面地址"),
+                );
                 if ui
                     .add_enabled(states.can_add, egui::Button::new("添加地址 (Add URL)"))
                     .clicked()
                 {
-                    action = Some(AppAction::OpenAddUrl);
+                    let typed_url = self.add_url_input.trim().to_string();
+                    action = Some(if typed_url.is_empty() {
+                        AppAction::OpenAddUrl
+                    } else {
+                        AppAction::PrepareAddUrl(typed_url)
+                    });
                 }
                 if ui
                     .add_enabled(states.can_resume, egui::Button::new("恢复 (Resume)"))
