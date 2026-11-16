@@ -174,3 +174,5 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - `crates/app/src/ui.rs` / `app.rs`：新增任务日志窗口、工具栏“日志”、查看菜单“任务日志”、右键“日志”；下载信息窗显示实时状态、attempt、已接收字节、错误码和原因；状态栏显示最近一条日志；有运行任务时定时请求重绘以刷新进度。
 - 当前组件锁未解析，因此新包的真实行为是：任务列表会显示 `Failed / ToolUnavailable`，日志明确写出 `COMPONENT_LOCK status is unresolved_do_not_execute` 和缺少已验证 yt-dlp/EJS/Deno/FFmpeg。**这仍是诊断包，不是可下载包**。
 - 若要真正下载，下一步必须在 GitHub Actions 发布流程里解析并核验官方组件、写入 `COMPONENT_LOCK.json` 并随包分发，或由用户显式配置“用户提供的工具路径”；不能伪造 SHA-256 或直接调用系统 PATH 里的 yt-dlp。
+- 本地 `cargo +stable check --workspace --all-targets` 通过。
+- `wbhy4falshv1/main` CI run **43870407465**：4/4 jobs success；Windows job **60 passed / 0 failed**（新增 runner 测试 1 项、UI 测试 5 项）。证据：`evidence/CI-43870407465/RESULTS.md`。
