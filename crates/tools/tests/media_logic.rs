@@ -54,7 +54,7 @@ fn test_error_classifier_distinguishes_all_categories() {
         ("Your IP is being blocked", YtDlpErrorCategory::IpBlocked),
         ("Video not available in your country", YtDlpErrorCategory::GeoBlocked),
         ("Cookies are no longer valid", YtDlpErrorCategory::AuthRejected),
-        ("This video is private", YtDlpErrorCategory::AuthRequired),
+        ("This private video is unavailable", YtDlpErrorCategory::AuthRequired),
         ("Requested format is not available", YtDlpErrorCategory::FormatUnavailable),
         ("Unable to extract video info", YtDlpErrorCategory::ExtractorChanged),
         ("Widevine DRM protected", YtDlpErrorCategory::DrmProtected),
@@ -109,7 +109,10 @@ fn test_highest_quality_picks_tallest_available() {
 fn test_max_height_is_upper_bound_not_guarantee() {
     let mut i = intent();
     i.max_height = Some(2160);
-    let available = vec![mk_format("1080p", TrackRole::VideoOnly, Some(1080), Some("h264"), None)];
+    let available = vec![
+        mk_format("1080p", TrackRole::VideoOnly, Some(1080), Some("h264"), None),
+        mk_format("audio", TrackRole::AudioOnly, None, None, Some("aac")),
+    ];
     let r = select_formats(&i, &available).unwrap();
     // Up to 2160 is allowed; 1080 must be accepted, not rejected as "not 4K".
     assert_eq!(r.selected_video.unwrap().height, Some(1080));
@@ -144,6 +147,8 @@ fn test_incompatible_codec_explicitly_rejected_when_transcode_disallowed() {
     let mut i = intent();
     i.container = "mp4".to_string();
     i.allow_transcode = false;
+    i.require_exact_format = true;
+    i.selected_format_ids = vec!["vp8".to_string()];
     // VP8 cannot be muxed into MP4. The product must reject rather than
     // pretend a format change is a conversion.
     let fmt = mk_format("vp8", TrackRole::VideoOnly, Some(1080), Some("vp8"), None);
