@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "kind": "video_audio",
+  "preset": "highest_quality",
+  "max_height": 2160,
+  "codec_preference": [
+    "av1",
+    "vp9",
+    "h264"
+  ],
+  "container": "auto",
+  "hdr": "preserve",
+  "audio_language": "original",
+  "subtitles": {
+    "languages": [
+      "zh-Hans",
+      "en"
+    ],
+    "source": "manual_preferred",
+    "mode": "sidecar"
+  },
+  "allow_quality_downgrade": false,
+  "allow_transcode": false,
+  "require_exact_format": false,
+  "selected_format_ids": []
+}

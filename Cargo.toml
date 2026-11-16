@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ipc",
+    "crates/engine",
+    "crates/tools",
+    "crates/app",
+    "crates/nmhost",
+    "crates/mcp",
+    "crates/cli",
+    "crates/labserver",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "GPL-3.0-or-later"
+authors = ["RustCatch Contributors", "Mister Download Manager Upstream Authors"]
+repository = "https://github.com/rustcatch/rustcatch"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.40", features = ["full"] }
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+thiserror = "2.0"
+url = { version = "2.5", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+regex = "1.11"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "socks", "json"] }
+egui = "0.29"
+eframe = "0.29"
+mdm-ipc = { path = "crates/ipc" }
+mdm-engine = { path = "crates/engine" }
+mdm-tools = { path = "crates/tools" }
+mdm-app = { path = "crates/app" }

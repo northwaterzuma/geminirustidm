@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "request_id": "req-demo-commit",
+  "idempotency_key": "install-demo:profile-demo:download-42",
+  "op": "handoff.commit",
+  "payload": {
+    "task_id": "task-demo",
+    "expected_revision": "1",
+    "handoff_token": "EXAMPLE_NOT_A_REAL_TOKEN",
+    "browser_download_id": 42,
+    "browser_cancel_confirmed": true
+  }
+}

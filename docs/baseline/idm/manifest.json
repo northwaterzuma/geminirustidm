@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "status": "needs_env_documented_reference_baseline",
+  "idm_version": "6.43 Build 18 (Target Reference; live Windows capture needs_env)",
+  "installer_source": null,
+  "installer_sha256": null,
+  "windows_build": null,
+  "language": "zh-CN",
+  "theme": "classic_light",
+  "font": "Microsoft YaHei UI / Noto Sans CJK SC 9pt",
+  "browser_versions": [],
+  "display_tests": [
+    {
+      "resolution": "1920x1080",
+      "scales": [
+        100,
+        125,
+        150,
+        200
+      ]
+    },
+    {
+      "resolution": "3840x2160",
+      "scales": [
+        100,
+        125,
+        150,
+        200
+      ]
+    }
+  ],
+  "windows": [
+    {
+      "id": "UI-01",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "菜单栏(任务/文件/下载/查看/帮助)",
+        "32px大图标工具栏(添加/恢复/停止/全部停止/删除/选项/调度/开始队列/停止队列/抓取)",
+        "左侧180px分类树(所有下载/未完成/已完成/队列)",
+        "右侧24px行高虚拟化任务表(文件名/大小/状态/剩余时间/传输速度/上次尝试时间/描述)",
+        "底部24px状态栏(全局速度/配额/活动任务数)",
+        "Delete键仅移除记录(RemoveRecord)，Shift+Delete或显式勾选才删除磁盘文件(DeleteFiles)"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-02",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "单URL输入与校验",
+        "使用授权(Basic/Context引用)",
+        "历史URL下拉",
+        "非法URL/不支持协议即时拦截",
+        "确定后衔接UI-03下载信息窗"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-03",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "目标文件名清理(Windows保留字/ADS/路径穿越防护)",
+        "分类选择与默认目录联动",
+        "替代路径与重名策略(rename/overwrite/skip，默认rename)",
+        "立即下载 / 稍后下载(入队Queued但暂不调度) / 队列选择"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-04",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "当前阶段(Resolve/Select/Transfer/Merge/Verify/Commit)",
+        "有效落盘字节/总大小(exact/estimate/unknown)",
+        "实时速度与平滑ETA",
+        "是否支持续传(Yes/No)",
+        "动态分段连接状态表與进度条",
+        "暂停/取消/完成后动作开关"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-05",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "媒体标题与平台ID",
+        "画质/编码(AV1/VP9/H264)/帧率/HDR选择",
+        "音轨语言(原声/配音标识)",
+        "字幕模式(none/sidecar/embedded/only)与来源(manual/auto)",
+        "解析/传输/合并/校验四阶段进度展示"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-06",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "仅在Commit持久化完成后弹出",
+        "打开文件/打开文件夹/删除文件",
+        "属性窗修改URL/认证上下文/本地保存路径(运行中采用计划变更安全阶段提交)",
+        "目标文件缺失时明确提示FileMissing"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-07",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "常规(系统集成/启动项/托盘)",
+        "文件类型与站点排除规则",
+        "连接(每任务上限8/全局上限24)",
+        "保存至(分类默认目录)",
+        "下载(完成弹窗/重名策略/限速)",
+        "代理服务器(system/manual/direct，禁止静默直连回退)",
+        "站点登录与Context管理",
+        "事件声音与完成动作"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-08",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "主队列/同步队列/自定义队列",
+        "队列任务排序与并发数(1..8)",
+        "定时启动/停止、周期计划、时区与夏令时(DST)规则、occurrence_id防重",
+        "重试预算与完成后休眠/关机(含可撤销倒计时)"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-09",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "网页视频右上角浮条(按frame/document/nav_epoch绑定)",
+        "当前标签候选资源面板(支持猫抓API桥接与内置嗅探)",
+        "右键发送至RustCatch",
+        "两阶段自动接管(prepare -> 确认浏览器取消 -> commit)与桌面离线回退"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-10",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "通配符/剪贴板批量添加与逐项校验",
+        "站点抓取四步向导(起始页/目标路径/探索深度<=2与页数<=500/文件类型过滤器)",
+        "项目保存、中断恢复与离线相对链接改写"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-11",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "过期签名URL通过原页面重新解析并核验资产指纹",
+        "401/403登录失效转AwaitingUser",
+        "磁盘空间不足显示所需与可用字节",
+        "ETag/Last-Modified变化拒绝拼接旧part",
+        "FFmpeg合并失败保留音视频输入轨仅重试后处理"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    },
+    {
+      "id": "UI-12",
+      "status": "documented_spec_needs_windows_vm_capture",
+      "screenshots": [],
+      "behavior_notes": [
+        "系统托盘(关闭主窗最小化至托盘 vs 完全退出受控停止)",
+        "悬浮拖放篮(仅接受白名单URL/文本)",
+        "系统原生通知",
+        "组件与主程序独立安全更新与回滚"
+      ],
+      "visual_tolerances": {
+        "toolbar_icon_logical_px": 32,
+        "table_row_height_logical_px": 24,
+        "category_panel_width_logical_px": 180,
+        "status_bar_height_logical_px": 24,
+        "dpi_scales_required": [
+          100,
+          125,
+          150,
+          200
+        ]
+      }
+    }
+  ]
+}

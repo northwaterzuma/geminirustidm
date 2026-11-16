@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "status": "not_captured",
+  "idm_version": null,
+  "installer_source": null,
+  "installer_sha256": null,
+  "windows_build": null,
+  "language": "zh-CN",
+  "theme": null,
+  "font": null,
+  "browser_versions": [],
+  "display_tests": [
+    {
+      "resolution": "1920x1080",
+      "scales": [
+        100,
+        125,
+        150,
+        200
+      ]
+    },
+    {
+      "resolution": "3840x2160",
+      "scales": [
+        100,
+        125,
+        150,
+        200
+      ]
+    }
+  ],
+  "windows": [
+    {
+      "id": "UI-01",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-02",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-03",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-04",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-05",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-06",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-07",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-08",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-09",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-10",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-11",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    },
+    {
+      "id": "UI-12",
+      "status": "not_captured",
+      "screenshots": [],
+      "behavior_notes": [],
+      "visual_tolerances": null
+    }
+  ]
+}

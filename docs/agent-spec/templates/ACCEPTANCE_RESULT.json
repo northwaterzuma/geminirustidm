@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "run_id": null,
+  "started_at_utc": null,
+  "finished_at_utc": null,
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": null,
+  "requirement_ids": [],
+  "test_ids": [],
+  "status": "not_run",
+  "repo_commit": null,
+  "working_tree_clean": null,
+  "cargo_lock_sha256": null,
+  "component_set_id": null,
+  "environment": {
+    "os": null,
+    "arch": null,
+    "rust": null,
+    "browser": null,
+    "network_profile_redacted": null
+  },
+  "fixture_ids": [],
+  "commands": [],
+  "expected": null,
+  "actual": null,
+  "exit_codes": [],
+  "evidence_paths": [],
+  "blocking_defects": [],
+  "not_run_reason": "Template only; no product test has been executed.",
+  "privacy_reviewed": false,
+  "reviewer": null
+}

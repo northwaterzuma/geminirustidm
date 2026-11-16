@@ -1,0 +1,267 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "kind": {
+      "enum": [
+        "video_audio",
+        "video_only",
+        "audio_only",
+        "subtitles_only"
+      ]
+    },
+    "preset": {
+      "enum": [
+        "highest_quality",
+        "device_compatible",
+        "audio_only",
+        "custom"
+      ]
+    },
+    "max_height": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 16384
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "codec_preference": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "av1",
+          "vp9",
+          "h264",
+          "hevc",
+          "vp8",
+          "any"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 10
+    },
+    "container": {
+      "enum": [
+        "auto",
+        "mp4",
+        "mkv",
+        "webm",
+        "m4a",
+        "mp3",
+        "opus",
+        "flac",
+        "wav"
+      ]
+    },
+    "hdr": {
+      "enum": [
+        "preserve",
+        "require_hdr",
+        "prefer_sdr",
+        "any"
+      ]
+    },
+    "audio_language": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 35
+    },
+    "subtitles": {
+      "type": "object",
+      "properties": {
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 35
+          },
+          "minItems": 0,
+          "maxItems": 20
+        },
+        "source": {
+          "enum": [
+            "manual",
+            "auto",
+            "manual_preferred"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "none",
+            "sidecar",
+            "embedded",
+            "only"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "languages",
+        "source",
+        "mode"
+      ],
+      "additionalProperties": false
+    },
+    "allow_quality_downgrade": {
+      "type": "boolean"
+    },
+    "allow_transcode": {
+      "type": "boolean"
+    },
+    "require_exact_format": {
+      "type": "boolean"
+    },
+    "selected_format_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "minItems": 0,
+      "maxItems": 16,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "version",
+    "kind",
+    "preset",
+    "max_height",
+    "codec_preference",
+    "container",
+    "hdr",
+    "audio_language",
+    "subtitles",
+    "allow_quality_downgrade",
+    "allow_transcode",
+    "require_exact_format",
+    "selected_format_ids"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.rustcatch.invalid/v1/media_intent_v1.schema.json",
+  "title": "RustCatch MediaIntent V1",
+  "description": "Target contract; codec/container availability and runtime output validation are required in addition to JSON validation.",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "require_exact_format": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "selected_format_ids": {
+            "minItems": 1
+          },
+          "allow_quality_downgrade": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "subtitles_only"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "subtitles": {
+            "properties": {
+              "mode": {
+                "const": "only"
+              },
+              "languages": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "subtitles": {
+            "properties": {
+              "mode": {
+                "const": "only"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "kind": {
+            "const": "subtitles_only"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "video_audio",
+              "video_only"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "container": {
+            "enum": [
+              "auto",
+              "mp4",
+              "mkv",
+              "webm"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "audio_only"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "max_height": {
+            "type": "null"
+          },
+          "hdr": {
+            "enum": [
+              "any",
+              "preserve"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

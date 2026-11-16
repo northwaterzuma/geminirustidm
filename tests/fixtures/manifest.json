@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "seed": 20261116,
+  "generated_at_utc": "2026-11-16T07:48:00Z",
+  "files": [
+    {
+      "id": "sample_64k",
+      "path": "tests/fixtures/media/sample_64k.bin",
+      "size_bytes": 65536,
+      "sha256": "92c8cf8008e1497f5cc5e30029e0bfcef97fe5bd42cf11a490d6e5ff5519de65",
+      "etag": "\"etag-92c8cf8008e1497f\"",
+      "last_modified": "Mon, 16 Nov 2026 07:00:00 GMT"
+    },
+    {
+      "id": "sample_256k",
+      "path": "tests/fixtures/media/sample_256k.bin",
+      "size_bytes": 262144,
+      "sha256": "f3f385be8292e9a77e37fc49c174d43020238fb38c041149d4548950f056fb7c",
+      "etag": "\"etag-f3f385be8292e9a7\"",
+      "last_modified": "Mon, 16 Nov 2026 07:00:00 GMT"
+    },
+    {
+      "id": "sample_archive_zip",
+      "path": "tests/fixtures/media/sample_archive.zip",
+      "size_bytes": 4529,
+      "sha256": "1e32cf7539983b92d973942b3c9dc47096dc2645212e96a4379ebb5a4b22bd3b",
+      "entries": [
+        "readme.txt",
+        "docs/spec_summary.md",
+        "bin/payload.bin"
+      ]
+    }
+  ],
+  "media_manifests": [
+    {
+      "id": "hls_master",
+      "path": "tests/fixtures/media/master.m3u8",
+      "drm": "Clear"
+    },
+    {
+      "id": "hls_v1080",
+      "path": "tests/fixtures/media/stream_v1080.m3u8",
+      "drm": "Clear"
+    },
+    {
+      "id": "hls_aes128",
+      "path": "tests/fixtures/media/stream_aes128.m3u8",
+      "drm": "StandardHlsAes128"
+    },
+    {
+      "id": "hls_drm",
+      "path": "tests/fixtures/media/stream_drm.m3u8",
+      "drm": "Protected"
+    },
+    {
+      "id": "dash_clear",
+      "path": "tests/fixtures/media/manifest.mpd",
+      "drm": "Clear"
+    },
+    {
+      "id": "dash_widevine",
+      "path": "tests/fixtures/media/drm_widevine.mpd",
+      "drm": "Protected"
+    }
+  ]
+}

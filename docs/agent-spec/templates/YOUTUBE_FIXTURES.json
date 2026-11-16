@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "needs_fixture",
+  "fixtures": [],
+  "required_cases": [
+    "public_1080p",
+    "4k",
+    "hdr",
+    "60fps",
+    "shorts",
+    "playlist",
+    "multiple_audio_languages",
+    "manual_subtitles",
+    "automatic_subtitles",
+    "authorized_login",
+    "proxy_route"
+  ],
+  "fixture_fields": [
+    "id",
+    "url",
+    "media_id",
+    "owner_or_permission",
+    "visibility",
+    "expected_formats",
+    "expected_tracks",
+    "expected_subtitles",
+    "region",
+    "last_reviewed_at",
+    "status"
+  ],
+  "note": "Use owned or authorized content. No real sample URLs or test successes are prefilled."
+}

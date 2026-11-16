@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "request_id": "req-demo-media-add",
+  "idempotency_key": "explicit-demo-operation-1",
+  "op": "task.add",
+  "payload": {
+    "source": {
+      "kind": "page_url",
+      "url": "https://video.example.invalid/watch?v=demo"
+    },
+    "output": {
+      "directory_policy": "category_default",
+      "file_name_hint": "demo-video"
+    },
+    "context_ref": null,
+    "network_profile_id": "system-default",
+    "media_intent": {
+      "version": 1,
+      "kind": "video_audio",
+      "preset": "highest_quality",
+      "max_height": 2160,
+      "codec_preference": [
+        "av1",
+        "vp9",
+        "h264"
+      ],
+      "container": "auto",
+      "hdr": "preserve",
+      "audio_language": "original",
+      "subtitles": {
+        "languages": [
+          "zh-Hans",
+          "en"
+        ],
+        "source": "manual_preferred",
+        "mode": "sidecar"
+      },
+      "allow_quality_downgrade": false,
+      "allow_transcode": false,
+      "require_exact_format": false,
+      "selected_format_ids": []
+    },
+    "browser": null
+  }
+}

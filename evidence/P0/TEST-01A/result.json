@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "run_id": "run-p0-offline-001",
+  "started_at_utc": "2026-11-16T07:51:07Z",
+  "finished_at_utc": "2026-11-16T07:51:07Z",
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": "P0-T01",
+  "requirement_ids": [
+    "REQ-01",
+    "REQ-13",
+    "REQ-14",
+    "REQ-15",
+    "REQ-16",
+    "REQ-17",
+    "REQ-18"
+  ],
+  "test_ids": [
+    "TEST-01A"
+  ],
+  "status": "needs_env",
+  "environment": {
+    "os": "Linux 6.12.105+ x86_64",
+    "arch": "x86_64",
+    "rust": "needs_env_github_actions",
+    "browser": "none",
+    "network_profile_redacted": "offline"
+  },
+  "fixture_ids": [],
+  "commands": [],
+  "expected": "Capture live Windows IDM 6.43 Build 18 UI-01..UI-12 screenshots and DPI measurements.",
+  "actual": "Documented complete UI-01..UI-12 behavioral specification and REQ-01..19 gap matrix in docs/baseline/idm/manifest.json and docs/FEATURE_MATRIX.md; live Windows screenshot capture marked needs_env.",
+  "exit_codes": [],
+  "evidence_paths": [
+    "docs/baseline/idm/manifest.json",
+    "docs/FEATURE_MATRIX.md"
+  ],
+  "blocking_defects": [],
+  "not_run_reason": "Requires Windows 10/11 desktop VM with licensed IDM installation for live screenshot capture.",
+  "privacy_reviewed": true,
+  "reviewer": "RustCatch Lead Agent"
+}

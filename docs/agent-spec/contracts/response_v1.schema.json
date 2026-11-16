@@ -1,0 +1,654 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "status": {
+      "enum": [
+        "ok",
+        "prepared",
+        "accepted",
+        "queued",
+        "aborted",
+        "not_modified",
+        "error"
+      ]
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "task_state": {
+      "enum": [
+        "HandoffPending",
+        "Queued",
+        "Resolving",
+        "AwaitingUser",
+        "Running",
+        "Finishing",
+        "Pausing",
+        "Paused",
+        "Cancelling",
+        "Cancelled",
+        "Failed",
+        "Completed"
+      ]
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 20,
+      "description": "Decimal u64 string; overflow must also be rejected by the Rust decoder."
+    },
+    "durable": {
+      "type": "boolean"
+    },
+    "handoff_token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "data": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "enum": [
+                "negotiated",
+                "enrolled",
+                "challenge",
+                "authenticated"
+              ]
+            },
+            "selected_version": {
+              "const": 1
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "minItems": 0,
+              "maxItems": 100
+            },
+            "max_frame_bytes": {
+              "const": 262144
+            },
+            "challenge_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "challenge": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 1024
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "registered_instance_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "session_ref": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "enrollment_secret": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "expires_at": {
+              "type": "string",
+              "format": "date-time",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "stage",
+            "selected_version",
+            "capabilities",
+            "max_frame_bytes"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "stored_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "stored_count"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "candidates": {
+              "type": "array",
+              "items": {
+                "$ref": "capture_v1.schema.json#/$defs/candidate"
+              },
+              "minItems": 0,
+              "maxItems": 100
+            },
+            "next_cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "candidates",
+            "next_cursor"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "context_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "context_revision": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 20,
+              "description": "Decimal u64 string; overflow must also be rejected by the Rust decoder."
+            },
+            "expires_at": {
+              "type": "string",
+              "format": "date-time",
+              "maxLength": 64
+            },
+            "material_changed": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "context_ref",
+            "context_revision",
+            "expires_at",
+            "material_changed"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "revoked": {
+              "const": true
+            }
+          },
+          "required": [
+            "revoked"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "task": {
+              "$ref": "#/$defs/task_snapshot"
+            }
+          },
+          "required": [
+            "task"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "handoff_state": {
+              "enum": [
+                "pending",
+                "committed",
+                "aborted",
+                "expired",
+                "awaiting_user"
+              ]
+            },
+            "expires_at": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "browser_download_id": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          },
+          "required": [
+            "handoff_state",
+            "expires_at",
+            "browser_download_id"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "enum": [
+            "UnsupportedVersion",
+            "InvalidRequest",
+            "InvalidState",
+            "PermissionDenied",
+            "TooLarge",
+            "ContextExpired",
+            "StaleNavigation",
+            "IdempotencyConflict",
+            "NotFound",
+            "RevisionConflict",
+            "LeaseExpired",
+            "AlreadyCommitted",
+            "NotReplayable",
+            "ToolUnavailable",
+            "NetworkError",
+            "RateLimited",
+            "AuthRequired",
+            "AuthRejected",
+            "BotBlocked",
+            "IpBlocked",
+            "GeoBlocked",
+            "FormatUnavailable",
+            "ExtractorChanged",
+            "ResourceChanged",
+            "DrmProtected",
+            "DiskFull",
+            "MergeFailed",
+            "Cancelled",
+            "InternalError"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 31536000000
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "retry_after_ms"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "request_id",
+    "status"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.rustcatch.invalid/v1/response_v1.schema.json",
+  "title": "RustCatch Browser Bridge V1 Response",
+  "$defs": {
+    "task_snapshot": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 20,
+          "description": "Decimal u64 string; overflow must also be rejected by the Rust decoder."
+        },
+        "attempt_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "HandoffPending",
+            "Queued",
+            "Resolving",
+            "AwaitingUser",
+            "Running",
+            "Finishing",
+            "Pausing",
+            "Paused",
+            "Cancelling",
+            "Cancelled",
+            "Failed",
+            "Completed"
+          ]
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "enum": [
+                "Resolve",
+                "Select",
+                "Transfer",
+                "Merge",
+                "Verify",
+                "Commit"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "source_display": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "bytes_received": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 20,
+          "description": "Decimal u64 string; overflow must also be rejected by the Rust decoder."
+        },
+        "total_bytes": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$",
+              "maxLength": 20,
+              "description": "Decimal u64 string; overflow must also be rejected by the Rust decoder."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "size_kind": {
+          "enum": [
+            "exact",
+            "estimate",
+            "unknown"
+          ]
+        },
+        "progress_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "component_set_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "task_id",
+        "revision",
+        "attempt_id",
+        "state",
+        "phase",
+        "reason",
+        "display_name",
+        "source_display",
+        "bytes_received",
+        "total_bytes",
+        "size_kind",
+        "progress_ratio",
+        "component_set_id",
+        "error_code"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "size_kind": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "total_bytes": {
+                "type": "null"
+              },
+              "progress_ratio": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "error"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "error"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "handoff_token"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "prepared"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "task_id",
+          "task_state",
+          "revision",
+          "durable",
+          "handoff_token",
+          "expires_at"
+        ],
+        "properties": {
+          "task_state": {
+            "const": "HandoffPending"
+          },
+          "durable": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "accepted",
+              "queued",
+              "aborted"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "task_id",
+          "task_state",
+          "revision",
+          "durable"
+        ],
+        "properties": {
+          "durable": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}

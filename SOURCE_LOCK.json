@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "document_version": "1.0",
+  "checked_on_local_date": "2026-11-15",
+  "checked_at_utc": "2026-11-16T07:21:48Z",
+  "status": "source_reviewed_not_built",
+  "default_base": "mdm_v0_5_2",
+  "repositories": [
+    {
+      "id": "mdm_v0_5_2",
+      "url": "https://github.com/anefzaoui/misterdownloadmanager",
+      "observed_ref": "refs/tags/v0.5.2",
+      "commit": "605a0c74e50361afe77bf1721d7172636bd5c57e",
+      "role": "development_base",
+      "license": "GPL-3.0-or-later",
+      "rust_edition": "2024",
+      "declared_msrv": "1.95",
+      "verification": [
+        "git_ref_object_commit",
+        "git_commit_object",
+        "Cargo.toml",
+        "docs/ARCHITECTURE.md",
+        "extension/manifest.json"
+      ],
+      "runtime_verified": false
+    },
+    {
+      "id": "mdm_main_reference",
+      "url": "https://github.com/anefzaoui/misterdownloadmanager",
+      "observed_ref": "refs/heads/main",
+      "commit": "1dc204ca92c51377fffbc628a9a4f739dc1a68c8",
+      "role": "reference_only_selective_backports",
+      "license": "GPL-3.0-or-later",
+      "runtime_verified": false
+    },
+    {
+      "id": "cat_catch",
+      "url": "https://github.com/xifangczy/cat-catch",
+      "observed_ref": "refs/heads/master",
+      "commit": "7529f1e6c63c2e1b2e5d4baf5cd0577b8eb4aaba",
+      "role": "capture_api_then_selective_source_integration",
+      "license": "GPL-3.0",
+      "runtime_verified": false
+    },
+    {
+      "id": "arroxy",
+      "url": "https://github.com/antonio-orionus/Arroxy",
+      "observed_ref": "refs/heads/main",
+      "commit": "6df64a067f063c53a25c8deaca02e1345ffb1f87",
+      "role": "behavior_and_test_reference",
+      "license": "GPL-3.0-or-later",
+      "component_licenses": {
+        "packages/yt-dlp-bridge": "MIT",
+        "packages/ytdlp-errors": "MIT"
+      },
+      "runtime_verified": false
+    },
+    {
+      "id": "fluxdown",
+      "url": "https://github.com/zerx-lab/FluxDown",
+      "observed_ref": "refs/heads/main",
+      "commit": "9a5b0d7d5b754c27c2853dd0434494695db18e8d",
+      "role": "resolver_design_and_optional_adapter",
+      "license": "AGPL-3.0",
+      "component_licenses": {
+        "packages/plugin-sdk": "AGPL-3.0-or-later",
+        "packages/plugin-sdk/examples/youtube-down/vendor/yt-dlp-ejs": "Unlicense plus bundled third-party notices"
+      },
+      "verification": [
+        "git_ref_object_commit",
+        "git_commit_object"
+      ],
+      "runtime_verified": false
+    }
+  ],
+  "policy": {
+    "must_verify_checkout_with_git": true,
+    "never_follow_floating_main": true,
+    "keep_upstream_Cargo_lock": true,
+    "dependency_binaries": "Resolve official platform builds in P0-T02; record exact version, URL, size, digest and provenance before execution.",
+    "conflict_rule": "On SHA/type/content mismatch, stop using that entry, record evidence; do not silently replace it with a branch head."
+  }
+}

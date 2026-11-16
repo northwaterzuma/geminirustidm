@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "request_id": "req-demo-publish",
+  "idempotency_key": "capture-demo-generation-3",
+  "op": "capture.publish",
+  "payload": {
+    "browser": {
+      "installation_id": "install-demo",
+      "profile_id": "profile-demo",
+      "download_id": 42,
+      "tab_id": 7,
+      "frame_id": 0,
+      "document_id": "doc-demo",
+      "nav_epoch": 3
+    },
+    "generation": "3",
+    "next_cursor": null,
+    "candidates": [
+      {
+        "candidate_id": "candidate-demo",
+        "kind": "hls",
+        "url": "https://media.example.invalid/master.m3u8",
+        "page_url": "https://example.invalid/watch",
+        "browser": {
+          "installation_id": "install-demo",
+          "profile_id": "profile-demo",
+          "download_id": 42,
+          "tab_id": 7,
+          "frame_id": 0,
+          "document_id": "doc-demo",
+          "nav_epoch": 3
+        },
+        "mime": "application/vnd.apple.mpegurl",
+        "observed_at": "2026-11-16T07:00:00Z",
+        "size_bytes": null,
+        "size_kind": "unknown",
+        "source": "integrated_capture",
+        "request_context_ref": null
+      }
+    ]
+  }
+}

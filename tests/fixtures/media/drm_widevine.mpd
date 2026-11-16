@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" mediaPresentationDuration="PT12S">
+  <Period id="p0">
+    <AdaptationSet mimeType="video/mp4">
+      <ContentProtection schemeIdUri="urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed" value="Widevine"/>
+      <Representation id="v_enc" width="1920" height="1080" bandwidth="4000000"/>
+    </AdaptationSet>
+  </Period>
+</MPD>

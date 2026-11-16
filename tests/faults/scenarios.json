@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "seed": 20261116,
+  "scenarios": [
+    {
+      "id": "FAULT-206-EXACT",
+      "description": "Standard RFC 9110 206 Partial Content with strong ETag",
+      "expected": "multi_segment_complete_sha256_match"
+    },
+    {
+      "id": "FAULT-206-SHORT",
+      "description": "Valid short 206 response returning half of requested range",
+      "expected": "reschedule_remaining_tail_without_gap_or_overlap"
+    },
+    {
+      "id": "FAULT-206-BAD-RANGE",
+      "description": "Mismatched Content-Range start/total vs requested range",
+      "expected": "reject_write_abort_worker_report_protocol_error"
+    },
+    {
+      "id": "FAULT-200-ON-RANGE",
+      "description": "Server ignores Range header and returns 200 OK full body",
+      "expected": "never_write_to_nonzero_offset_downgrade_to_single_stream"
+    },
+    {
+      "id": "FAULT-416-COMPLETE",
+      "description": "416 Range Not Satisfiable with bytes */N matching completed intervals and validator",
+      "expected": "transition_to_verify_and_complete"
+    },
+    {
+      "id": "FAULT-416-MISMATCH",
+      "description": "416 Range Not Satisfiable with mismatched length or incomplete intervals",
+      "expected": "fail_with_resource_changed"
+    },
+    {
+      "id": "FAULT-ETAG-CHANGED",
+      "description": "ETag or Last-Modified changes mid-download on resume",
+      "expected": "refuse_append_discard_stale_parts_restart_or_await_user"
+    },
+    {
+      "id": "FAULT-429-RETRY-AFTER",
+      "description": "HTTP 429 Too Many Requests with Retry-After: 45",
+      "expected": "state_queued_rate_limited_respect_not_before_site_cooldown"
+    },
+    {
+      "id": "FAULT-DISCONNECT-MIDSTREAM",
+      "description": "TCP stream drops at byte 16384",
+      "expected": "resume_from_last_durable_checkpoint_generation_fenced"
+    },
+    {
+      "id": "FAULT-DISK-FULL",
+      "description": "Simulated ENOSPC during part write or merge",
+      "expected": "fail_disk_full_no_retry_loop_preserve_existing_parts"
+    }
+  ]
+}

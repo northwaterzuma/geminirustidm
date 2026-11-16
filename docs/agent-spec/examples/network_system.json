@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "system-default",
+  "revision": "1",
+  "mode": "system",
+  "dns": "system",
+  "bypass_hosts": [],
+  "direct_fallback": false
+}

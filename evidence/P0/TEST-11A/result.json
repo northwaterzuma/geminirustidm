@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "run_id": "run-p0-offline-001",
+  "started_at_utc": "2026-11-16T07:51:07Z",
+  "finished_at_utc": "2026-11-16T07:51:07Z",
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": "P0-T02",
+  "requirement_ids": [
+    "REQ-02",
+    "REQ-06",
+    "REQ-11"
+  ],
+  "test_ids": [
+    "TEST-11A"
+  ],
+  "status": "needs_env",
+  "environment": {
+    "os": "Linux 6.12.105+ x86_64",
+    "arch": "x86_64",
+    "rust": "needs_env_github_actions",
+    "browser": "none",
+    "network_profile_redacted": "offline"
+  },
+  "fixture_ids": [],
+  "commands": [
+    "sha256sum -c CHECKSUMS.sha256"
+  ],
+  "expected": "Audit upstream lock, licenses, component lock, and compile workspace with Rust 1.95.",
+  "actual": "Completed static audit (UPSTREAM_AUDIT.md), license reuse register (REUSE_REGISTER.md), and COMPONENT_LOCK.json. Local container lacks rustc/internet; compilation delegated to GitHub Actions (.github/workflows/ci.yml).",
+  "exit_codes": [
+    0
+  ],
+  "evidence_paths": [
+    "docs/baseline/UPSTREAM_AUDIT.md",
+    "docs/baseline/BUILD_BASELINE.md",
+    "docs/baseline/REUSE_REGISTER.md",
+    "COMPONENT_LOCK.json"
+  ],
+  "blocking_defects": [],
+  "not_run_reason": "Local sandbox container has no rustc/cargo or outbound internet; cargo build/test runs on GitHub Actions.",
+  "privacy_reviewed": true,
+  "reviewer": "RustCatch Lead Agent"
+}

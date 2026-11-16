@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "request_id": "req-demo-media-add",
+  "status": "error",
+  "error": {
+    "code": "FormatUnavailable",
+    "message": "所选格式已不可用，请重新选择。",
+    "retryable": false,
+    "retry_after_ms": null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "request_id": "req-demo-prepare",
+  "status": "prepared",
+  "task_state": "HandoffPending",
+  "task_id": "task-demo",
+  "revision": "1",
+  "durable": true,
+  "handoff_token": "EXAMPLE_NOT_A_REAL_TOKEN",
+  "expires_at": "2026-11-16T08:00:00Z"
+}

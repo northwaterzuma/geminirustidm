@@ -1,0 +1,80 @@
+# RustCatch 目标配置示例；这是待实现契约，不是已可被 MDM 原版读取的配置。
+# 所有目录由应用根据 OS 选择；这里不填写用户真实路径或秘密。
+schema_version = 1
+language = "zh-CN"
+theme = "classic_light"
+close_to_tray = true
+start_with_system = false
+
+[download]
+max_active_tasks = 3
+http_connections_per_task = 8
+native_http_connections_total = 24
+minimum_work_block_bytes = 4194304
+global_rate_limit_bytes_per_second = 0 # 0 表示不限速；非零必须覆盖所有执行器
+checkpoint_interval_ms = 2000
+checkpoint_bytes = 8388608
+collision_policy = "rename"
+retain_cancelled_parts = true
+
+[media]
+default_executor = "yt_dlp"
+default_preset = "highest_quality"
+youtube_active_tasks = 2
+fragment_concurrency = 4
+ffmpeg_concurrency = 1
+allow_quality_downgrade = false
+allow_transcode = false
+playlist_preview_page_limit = 500
+flux_experimental = false
+
+[retry]
+max_attempt_retries = 3
+backoff_seconds = [30, 60, 120]
+jitter_ratio = 0.2
+respect_retry_after = true
+
+[bridge]
+protocol_version = 1
+native_host_name = "com.rustcatch.bridge"
+max_frame_bytes = 262144
+max_json_depth = 16
+max_candidates_per_page = 100
+max_context_bytes = 32768
+context_ttl_seconds = 900
+handoff_lease_seconds = 120
+outbox_auto_replay_max_days = 7
+tombstone_min_days = 30
+
+[ui]
+progress_max_hz_per_task = 10
+category_panel_width_logical_px = 180
+task_row_height_logical_px = 24
+
+[network]
+profile_id = "system-default"
+mode = "system"
+revision = "1"
+direct_fallback = false
+browser_proxy_assumed_equal = false
+
+[components]
+require_verified_component_set = true
+keep_previous_sets = 1
+inherit_system_tools = false
+allow_unverified_remote_ejs = false
+
+[diagnostics]
+redact_secrets = true
+remote_reporting = false
+
+[mcp]
+transport = "stdio"
+enabled = true
+allow_file_delete = false
+allow_arbitrary_commands = false
+
+[grabber]
+same_site_only = true
+max_depth = 2
+max_pages = 500

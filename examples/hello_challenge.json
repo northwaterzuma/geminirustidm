@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "request_id": "req-demo-hello-1",
+  "idempotency_key": "hello-demo-connection-1",
+  "op": "hello",
+  "payload": {
+    "stage": "challenge",
+    "supported_versions": [
+      1
+    ],
+    "registered_instance_id": "instance-demo"
+  }
+}

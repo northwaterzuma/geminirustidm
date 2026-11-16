@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "run_id": "run-p0-offline-001",
+  "started_at_utc": "2026-11-16T07:51:07Z",
+  "finished_at_utc": "2026-11-16T07:51:07Z",
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": "P0-T03",
+  "requirement_ids": [
+    "REQ-02",
+    "REQ-03",
+    "REQ-05",
+    "REQ-06",
+    "REQ-09",
+    "REQ-11"
+  ],
+  "test_ids": [
+    "TEST-02A"
+  ],
+  "status": "passed",
+  "working_tree_clean": false,
+  "environment": {
+    "os": "Linux 6.12.105+ x86_64",
+    "arch": "x86_64",
+    "rust": "needs_env_github_actions",
+    "browser": "none",
+    "network_profile_redacted": "loopback-only"
+  },
+  "fixture_ids": [
+    "sample_64k",
+    "sample_256k",
+    "sample_archive_zip",
+    "hls_master",
+    "dash_clear"
+  ],
+  "commands": [
+    "python3 setup_p0.py",
+    "loopback HTTP 200/206/416/429 verification"
+  ],
+  "expected": "Deterministic fixtures match SHA-256 and loopback fault server returns exact 200/206/416/429 headers and byte ranges.",
+  "actual": "Verified sample_64k SHA-256=92c8cf8008e1497f5cc5e30029e0bfcef97fe5bd42cf11a490d6e5ff5519de65, HTTP 206 Content-Range bytes 0-16383/65536, HTTP 416 bytes */65536, HTTP 429 Retry-After=45.",
+  "exit_codes": [
+    0
+  ],
+  "evidence_paths": [
+    "tests/fixtures/manifest.json",
+    "tests/faults/scenarios.json"
+  ],
+  "blocking_defects": [],
+  "not_run_reason": null,
+  "privacy_reviewed": true,
+  "reviewer": "RustCatch Lead Agent"
+}

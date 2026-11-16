@@ -1,0 +1,139 @@
+{
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)$",
+      "maxLength": 20,
+      "description": "Decimal u64 string; overflow must also be rejected by the Rust decoder."
+    },
+    "mode": {
+      "enum": [
+        "system",
+        "manual",
+        "direct"
+      ]
+    },
+    "endpoint": {
+      "type": "object",
+      "properties": {
+        "scheme": {
+          "enum": [
+            "http",
+            "https",
+            "socks5"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "scheme",
+        "host",
+        "port"
+      ],
+      "additionalProperties": false
+    },
+    "auth_ref": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dns": {
+      "enum": [
+        "system",
+        "local",
+        "proxy"
+      ]
+    },
+    "bypass_hosts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 253
+      },
+      "minItems": 0,
+      "maxItems": 100
+    },
+    "direct_fallback": {
+      "const": false
+    }
+  },
+  "required": [
+    "version",
+    "id",
+    "revision",
+    "mode",
+    "dns",
+    "bypass_hosts",
+    "direct_fallback"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.rustcatch.invalid/v1/network_profile_v1.schema.json",
+  "title": "RustCatch NetworkProfile V1",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "manual"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "endpoint"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "direct",
+              "system"
+            ]
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "endpoint"
+          ]
+        },
+        "properties": {
+          "auth_ref": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}
