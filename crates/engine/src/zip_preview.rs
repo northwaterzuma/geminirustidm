@@ -124,7 +124,7 @@ pub fn parse_zip_tail_preview(tail_bytes: &[u8], total_archive_size: u64) -> Res
             });
         }
         let name_str = String::from_utf8_lossy(&tail_bytes[pos + 46..pos + 46 + name_len]).to_string();
-        if name_str.contains("..") || name_str.starts_with('/') || name_str.starts_with('\') || name_str.contains(':') {
+        if name_str.contains("..") || name_str.starts_with('/') || name_str.starts_with('\\') || name_str.contains(':') {
             return Err(ErrorDetail {
                 code: ErrorCode::PermissionDenied,
                 message: format!("Unsafe ZIP entry path rejected: {}", name_str),

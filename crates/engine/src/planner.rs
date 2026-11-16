@@ -117,18 +117,18 @@ impl SegmentPlanner {
             return None;
         }
         let new_seg_id = self.segments.len() as u32;
-        let gen = self.next_generation;
+        let generation = self.next_generation;
         self.next_generation += 2;
 
         let seg = &mut self.segments[best_idx];
         let mid = seg.committed_offset + remaining / 2;
         let old_end = seg.end;
         seg.end = mid;
-        seg.generation = gen;
+        seg.generation = generation;
 
         let new_lease = SegmentLease {
             segment_id: new_seg_id,
-            generation: gen + 1,
+            generation: generation + 1,
             start: mid,
             committed_offset: mid,
             end: old_end,
