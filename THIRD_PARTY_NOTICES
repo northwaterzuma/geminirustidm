@@ -30,3 +30,10 @@ RustCatch is distributed under the **GNU General Public License v3.0 or later (G
 - `yt-dlp-ejs`: Unlicense AND ISC AND MIT (https://github.com/yt-dlp/yt-dlp/wiki/EJS)
 - `Deno`: MIT License (https://github.com/denoland/deno)
 - `FFmpeg` / `ffprobe`: LGPL-2.1-or-later / GPL-3.0-or-later depending on target platform binary build configuration (`ffmpeg -buildconf`).
+
+## 6. Noto Sans SC (Bundled UI Font)
+- Source: https://github.com/notofonts/noto-cjk (Noto Sans SC, Simplified Chinese)
+- License: SIL Open Font License 1.1 (see `assets/fonts/OFL.txt`)
+- Role: Bundled as `assets/fonts/NotoSansSC-subset.ttf` (static wght=400, subset to GB2312 common
+  repertoire + ASCII) and embedded into the desktop app so Chinese menu/status text renders
+  offline on all platforms. Font data is redistributed under OFL-1.1; it is not GPL-licensed.

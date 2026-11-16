@@ -1,6 +1,7 @@
 pub mod app;
 pub mod batch;
 pub mod capture;
+pub mod fonts;
 pub mod grabber;
 pub mod model;
 pub mod queue;

@@ -11,6 +11,9 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "RustCatch",
         native_options,
-        Box::new(|_cc| Ok(Box::new(RustCatchDesktopApp::default()))),
+        Box::new(|cc| {
+            mdm_app::fonts::install_chinese_font(&cc.egui_ctx);
+            Ok(Box::new(RustCatchDesktopApp::default()))
+        }),
     )
 }
