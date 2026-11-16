@@ -1,5 +1,6 @@
 //! IDM Classic Light UI View-Model and egui/eframe Window Bindings (UI-01 .. UI-12).
 
+use crate::runner::{StartRequest, WorkerEvent, WorkerHandle, spawn_worker};
 use crate::task_coordinator::TaskCoordinator;
 use mdm_ipc::{
     CallerOriginKind, CallerScope, CapabilityScope, CollisionPolicy, ControlOp, DirectoryPolicy,
@@ -7,6 +8,7 @@ use mdm_ipc::{
     TaskSnapshot, TaskState, sanitize_file_name,
 };
 use mdm_tools::video::extract_youtube_identity;
+use std::sync::mpsc::Receiver;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
@@ -33,6 +35,7 @@ pub enum UiDialog {
     Options,
     QueueScheduler,
     SiteGrabber,
+    TaskLog,
     About,
 }
 
@@ -50,9 +53,26 @@ pub enum AppAction {
     OpenOptions,
     OpenScheduler,
     OpenGrabber,
+    OpenTaskLog,
+    ClearLog,
     OpenAbout,
     CloseDialog,
     SelectCategory(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogLevel {
+    Info,
+    Progress,
+    Error,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LogLine {
+    pub time: String,
+    pub level: LogLevel,
+    pub task_id: String,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,10 +139,14 @@ pub struct RustCatchDesktopApp {
     pub queue_running: bool,
     pub add_url_history: Vec<String>,
     pub last_task_id: Option<String>,
+    pub worker: WorkerHandle,
+    pub worker_events: Receiver<WorkerEvent>,
+    pub log_lines: Vec<LogLine>,
 }
 
 impl Default for RustCatchDesktopApp {
     fn default() -> Self {
+        let (worker, worker_events) = spawn_worker();
         Self {
             coordinator: TaskCoordinator::new(),
             selected_category: "所有下载 (All Downloads)".to_string(),
@@ -143,6 +167,9 @@ impl Default for RustCatchDesktopApp {
             queue_running: false,
             add_url_history: Vec::new(),
             last_task_id: None,
+            worker,
+            worker_events,
+            log_lines: Vec::new(),
         }
     }
 }
@@ -198,6 +225,127 @@ fn default_media_intent() -> MediaIntent {
 }
 
 impl RustCatchDesktopApp {
+    pub fn push_log(&mut self, level: LogLevel, task_id: &str, message: impl Into<String>) {
+        let message = message.into();
+        self.log_lines.push(LogLine {
+            time: chrono::Local::now().format("%H:%M:%S").to_string(),
+            level,
+            task_id: task_id.to_string(),
+            message: message.clone(),
+        });
+        if self.log_lines.len() > 500 {
+            self.log_lines.remove(0);
+        }
+        if level != LogLevel::Progress {
+            self.status_message = message;
+        }
+    }
+
+    pub fn start_task_worker(&mut self, task_id: &str) -> bool {
+        let Some(task) = self.coordinator.tasks.get(task_id) else {
+            self.push_log(LogLevel::Error, task_id, "任务不存在，无法启动 worker");
+            return false;
+        };
+        let Some(attempt_id) = task.attempt_id.clone() else {
+            self.push_log(
+                LogLevel::Error,
+                task_id,
+                "任务没有 attempt_id，无法启动 worker",
+            );
+            return false;
+        };
+        if task.worker_source_url.trim().is_empty() {
+            self.push_log(
+                LogLevel::Error,
+                task_id,
+                "任务缺少可执行的源地址，无法启动 worker",
+            );
+            return false;
+        }
+        self.worker.start(StartRequest {
+            task_id: task.task_id.clone(),
+            attempt_id,
+            page_url: task.worker_source_url.clone(),
+            file_name_hint: task.output.file_name_hint.clone(),
+            output_dir: task.output.directory_ref.clone(),
+            media_intent: task.media_intent.clone(),
+        });
+        self.push_log(LogLevel::Info, task_id, "已提交下载任务到后台 worker");
+        true
+    }
+
+    pub fn drain_worker_events(&mut self) {
+        while let Ok(event) = self.worker_events.try_recv() {
+            self.record_worker_event(event);
+        }
+    }
+
+    pub fn record_worker_event(&mut self, event: WorkerEvent) {
+        match event {
+            WorkerEvent::Log { task_id, message } => {
+                let level = if message.contains("stderr")
+                    || message.contains("失败")
+                    || message.contains("拒绝执行")
+                {
+                    LogLevel::Error
+                } else {
+                    LogLevel::Info
+                };
+                self.push_log(level, &task_id, message);
+            }
+            WorkerEvent::Progress {
+                task_id,
+                attempt_id,
+                bytes,
+            } => {
+                let _ = self
+                    .coordinator
+                    .apply_worker_event(&task_id, &attempt_id, bytes, false);
+                self.push_log(LogLevel::Progress, &task_id, format!("已接收 {} B", bytes));
+            }
+            WorkerEvent::Completed {
+                task_id,
+                attempt_id,
+            } => {
+                let bytes = self
+                    .coordinator
+                    .tasks
+                    .get(&task_id)
+                    .map(|task| task.bytes_received)
+                    .unwrap_or(0);
+                match self
+                    .coordinator
+                    .apply_worker_event(&task_id, &attempt_id, bytes, true)
+                {
+                    Ok(_) => self.push_log(LogLevel::Info, &task_id, "下载完成"),
+                    Err(error) => self.push_log(
+                        LogLevel::Error,
+                        &task_id,
+                        format!("完成事件被拒绝: {}", error.message),
+                    ),
+                }
+            }
+            WorkerEvent::Failed {
+                task_id,
+                attempt_id,
+                error,
+            } => {
+                let message = format!("{:?}: {}", error.code, error.message);
+                if let Err(reject) =
+                    self.coordinator
+                        .mark_task_failed(&task_id, &attempt_id, &error, now_epoch_ms())
+                {
+                    self.push_log(
+                        LogLevel::Error,
+                        &task_id,
+                        format!("失败事件被拒绝: {}", reject.message),
+                    );
+                }
+                self.push_log(LogLevel::Error, &task_id, message);
+            }
+        }
+    }
+
     pub fn ui_caller() -> CallerScope {
         CallerScope {
             os_user: "local-desktop-user".to_string(),
@@ -350,6 +498,11 @@ impl RustCatchDesktopApp {
         let task_id = response.task_id.unwrap_or_default();
         self.selected_task_ids = vec![task_id.clone()];
         self.last_task_id = Some(task_id.clone());
+        self.push_log(
+            LogLevel::Info,
+            &task_id,
+            format!("任务已创建: {}，来源=page_url", self.pending_file_name),
+        );
         if !self.add_url_history.contains(&self.pending_url) {
             self.add_url_history.push(self.pending_url.clone());
             if self.add_url_history.len() > 20 {
@@ -365,7 +518,7 @@ impl RustCatchDesktopApp {
                 .map(|task| task.revision)
                 .unwrap_or(1);
             let request_id = format!("ui-start-{}", Uuid::new_v4());
-            let _ = self.coordinator.control_task(
+            let start_response = self.coordinator.control_task(
                 &caller,
                 &request_id,
                 &task_id,
@@ -373,11 +526,20 @@ impl RustCatchDesktopApp {
                 ControlOp::Resume,
                 now_epoch_ms(),
             );
-            self.queue_running = true;
-            self.status_message = format!(
-                "任务已加入队列并置为运行态: {} | {}",
-                task_id, self.pending_file_name
-            );
+            if let Some(error) = start_response.error {
+                self.push_log(
+                    LogLevel::Error,
+                    &task_id,
+                    format!("启动失败: {:?}: {}", error.code, error.message),
+                );
+            } else {
+                self.queue_running = true;
+                self.start_task_worker(&task_id);
+                self.status_message = format!(
+                    "任务已提交后台 worker: {} | {}",
+                    task_id, self.pending_file_name
+                );
+            }
         } else {
             self.status_message =
                 format!("任务已加入队列: {} | {}", task_id, self.pending_file_name);
@@ -439,6 +601,9 @@ impl RustCatchDesktopApp {
                 .control_task(&caller, &request_id, &id, rev, op, now);
             if response.status != ResponseStatus::Error {
                 changed += 1;
+                if op == ControlOp::Resume {
+                    self.start_task_worker(&id);
+                }
             }
         }
         self.status_message = format!("{}: {} 个任务状态已更新", label, changed);
@@ -479,6 +644,9 @@ impl RustCatchDesktopApp {
                 .control_task(&caller, &request_id, &id, rev, op, now);
             if response.status != ResponseStatus::Error {
                 changed += 1;
+                if running {
+                    self.start_task_worker(&id);
+                }
             }
         }
         self.queue_running = running;
@@ -574,6 +742,14 @@ impl RustCatchDesktopApp {
             AppAction::OpenGrabber => {
                 self.open_dialog = Some(UiDialog::SiteGrabber);
                 self.status_message = "已打开“站点抓取”窗口".to_string();
+            }
+            AppAction::OpenTaskLog => {
+                self.open_dialog = Some(UiDialog::TaskLog);
+                self.status_message = format!("已打开任务日志，共 {} 行", self.log_lines.len());
+            }
+            AppAction::ClearLog => {
+                self.log_lines.clear();
+                self.status_message = "任务日志已清空".to_string();
             }
             AppAction::OpenAbout => {
                 self.open_dialog = Some(UiDialog::About);

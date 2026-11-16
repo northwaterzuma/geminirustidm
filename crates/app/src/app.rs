@@ -1,8 +1,10 @@
-use crate::ui::{AppAction, RustCatchDesktopApp, UiDialog, compute_toolbar_states};
+use crate::ui::{AppAction, LogLevel, RustCatchDesktopApp, UiDialog, compute_toolbar_states};
 use mdm_ipc::TaskSnapshot;
+use std::time::Duration;
 
 impl eframe::App for RustCatchDesktopApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.drain_worker_events();
         let mut action: Option<AppAction> = None;
 
         egui::TopBottomPanel::top("idm_menu_and_toolbar").show(ctx, |ui| {
@@ -63,6 +65,10 @@ impl eframe::App for RustCatchDesktopApp {
                     }
                     if ui.button("视频").clicked() {
                         action = Some(AppAction::SelectCategory("视频 (Video)".to_string()));
+                    }
+                    ui.separator();
+                    if ui.button("任务日志").clicked() {
+                        action = Some(AppAction::OpenTaskLog);
                     }
                 });
                 ui.menu_button("帮助(H)", |ui| {
@@ -171,6 +177,9 @@ impl eframe::App for RustCatchDesktopApp {
                 {
                     action = Some(AppAction::OpenGrabber);
                 }
+                if ui.button("日志").clicked() {
+                    action = Some(AppAction::OpenTaskLog);
+                }
             });
         });
 
@@ -206,6 +215,10 @@ impl eframe::App for RustCatchDesktopApp {
                     ui.label(&self.status_message);
                     ui.separator();
                     ui.label(format!("任务总数: {}", self.coordinator.tasks.len()));
+                    if let Some(last) = self.log_lines.last() {
+                        ui.separator();
+                        ui.label(format!("最近日志 {}: {}", last.time, last.message));
+                    }
                 });
             });
 
@@ -257,6 +270,9 @@ impl eframe::App for RustCatchDesktopApp {
                         if ui.button("下载信息").clicked() {
                             action = Some(AppAction::OpenDownloadInfo);
                         }
+                        if ui.button("日志").clicked() {
+                            action = Some(AppAction::OpenTaskLog);
+                        }
                         if ui.button("移除记录").clicked() {
                             action = Some(AppAction::RemoveSelected);
                         }
@@ -269,6 +285,18 @@ impl eframe::App for RustCatchDesktopApp {
             self.apply_action(action);
         }
         self.show_dialogs(ctx);
+
+        let any_running = self.coordinator.tasks.values().any(|task| {
+            matches!(
+                task.state,
+                mdm_ipc::TaskState::Running
+                    | mdm_ipc::TaskState::Resolving
+                    | mdm_ipc::TaskState::Finishing
+            )
+        });
+        if any_running {
+            ctx.request_repaint_after(Duration::from_millis(500));
+        }
     }
 }
 
@@ -340,6 +368,32 @@ impl RustCatchDesktopApp {
                 let error = pending_error;
                 let mut submit = false;
                 let mut cancel = false;
+                let detail_lines = self
+                    .pending_task_id
+                    .as_ref()
+                    .and_then(|task_id| self.coordinator.tasks.get(task_id))
+                    .map(|task| {
+                        vec![
+                            format!("任务 ID: {}", task.task_id),
+                            format!("状态: {:?} / 阶段: {:?}", task.state, task.phase),
+                            format!("已接收字节: {} B", task.bytes_received),
+                            format!(
+                                "attempt: {}",
+                                task.attempt_id.clone().unwrap_or_else(|| "无".to_string())
+                            ),
+                            format!(
+                                "错误码: {}",
+                                task.error_code.clone().unwrap_or_else(|| "无".to_string())
+                            ),
+                            format!(
+                                "原因: {}",
+                                task.reason.clone().unwrap_or_else(|| "无".to_string())
+                            ),
+                        ]
+                    })
+                    .unwrap_or_else(|| {
+                        vec!["任务尚未创建；点击“确定”后会显示实时状态。".to_string()]
+                    });
                 let categories = [
                     "所有下载 (All Downloads)",
                     "未完成 (Unfinished)",
@@ -357,6 +411,11 @@ impl RustCatchDesktopApp {
                     .show(ctx, |ui| {
                         ui.label("地址");
                         ui.label(&pending_url);
+                        ui.separator();
+                        ui.label("当前状态");
+                        for line in &detail_lines {
+                            ui.label(line);
+                        }
                         ui.separator();
                         ui.horizontal(|ui| {
                             ui.label("文件名");
@@ -497,6 +556,51 @@ impl RustCatchDesktopApp {
                             close = true;
                         }
                     });
+                if close {
+                    keep_open = false;
+                }
+            }
+            UiDialog::TaskLog => {
+                let logs = self.log_lines.clone();
+                let mut clear = false;
+                let mut close = false;
+                egui::Window::new("任务日志 (Task Log)")
+                    .open(&mut keep_open)
+                    .default_width(720.0)
+                    .default_height(420.0)
+                    .show(ctx, |ui| {
+                        ui.horizontal(|ui| {
+                            if ui.button("清空日志").clicked() {
+                                clear = true;
+                            }
+                            if ui.button("关闭").clicked() {
+                                close = true;
+                            }
+                        });
+                        ui.separator();
+                        egui::ScrollArea::vertical().stick_to_bottom(true).show(ui, |ui| {
+                            if logs.is_empty() {
+                                ui.label("暂无日志。创建任务或点击恢复后，这里会显示 worker 执行过程。");
+                            }
+                            for line in logs {
+                                let color = match line.level {
+                                    LogLevel::Info => egui::Color32::from_rgb(40, 90, 160),
+                                    LogLevel::Progress => egui::Color32::from_rgb(60, 120, 60),
+                                    LogLevel::Error => egui::Color32::from_rgb(190, 40, 40),
+                                };
+                                ui.colored_label(
+                                    color,
+                                    format!(
+                                        "[{}] [{:?}] [{}] {}",
+                                        line.time, line.level, line.task_id, line.message
+                                    ),
+                                );
+                            }
+                        });
+                    });
+                if clear {
+                    self.apply_action(AppAction::ClearLog);
+                }
                 if close {
                     keep_open = false;
                 }

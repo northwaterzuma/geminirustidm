@@ -803,4 +803,46 @@ impl TaskCoordinator {
         }
         Ok((task.revision, task.last_seq))
     }
+
+    /// Marks the active attempt as failed after the worker reports a terminal error.
+    /// Stale attempts and terminal tasks are ignored so late events cannot corrupt state.
+    pub fn mark_task_failed(
+        &mut self,
+        task_id: &str,
+        attempt_id: &str,
+        error: &ErrorDetail,
+        now_epoch_ms: u64,
+    ) -> Result<u64, ErrorDetail> {
+        let Some(task) = self.tasks.get_mut(task_id) else {
+            return Err(ErrorDetail {
+                code: ErrorCode::NotFound,
+                message: "Task not found".to_string(),
+                retryable: false,
+                retry_after_ms: None,
+            });
+        };
+        if task.state.is_terminal() {
+            return Err(ErrorDetail {
+                code: ErrorCode::InvalidState,
+                message: "Terminal task cannot be marked failed".to_string(),
+                retryable: false,
+                retry_after_ms: None,
+            });
+        }
+        if task.attempt_id.as_deref() != Some(attempt_id) {
+            return Err(ErrorDetail {
+                code: ErrorCode::RevisionConflict,
+                message: "Dropping failure event from stale attempt_id".to_string(),
+                retryable: false,
+                retry_after_ms: None,
+            });
+        }
+        task.state = TaskState::Failed;
+        task.phase = None;
+        task.reason = Some(error.message.clone());
+        task.error_code = Some(format!("{:?}", error.code));
+        task.revision += 1;
+        task.not_before_epoch_ms = error.retry_after_ms.map(|ms| now_epoch_ms.saturating_add(ms));
+        Ok(task.revision)
+    }
 }

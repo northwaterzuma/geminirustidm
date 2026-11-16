@@ -1,5 +1,5 @@
-use mdm_app::{AppAction, RustCatchDesktopApp, UiDialog};
-use mdm_ipc::TaskState;
+use mdm_app::{AppAction, RustCatchDesktopApp, UiDialog, WorkerEvent};
+use mdm_ipc::{ErrorCode, ErrorDetail, TaskState};
 
 #[test]
 fn add_url_prepares_download_info_for_youtube_and_creates_task() {
@@ -52,6 +52,50 @@ fn prepare_add_url_action_skips_the_extra_click_when_address_is_present() {
 }
 
 #[test]
+fn worker_failure_marks_task_failed_and_writes_log() {
+    let mut app = RustCatchDesktopApp::default();
+    assert!(app.prepare_add_url("https://youtu.be/l7sCL3geF0U"));
+    assert!(app.confirm_pending_download());
+
+    let (task_id, attempt_id) = app
+        .coordinator
+        .tasks
+        .values()
+        .next()
+        .map(|task| {
+            (
+                task.task_id.clone(),
+                task.attempt_id.clone().expect("attempt id"),
+            )
+        })
+        .expect("task must exist");
+
+    app.record_worker_event(WorkerEvent::Failed {
+        task_id: task_id.clone(),
+        attempt_id,
+        error: ErrorDetail {
+            code: ErrorCode::ToolUnavailable,
+            message: "组件未解析".to_string(),
+            retryable: false,
+            retry_after_ms: None,
+        },
+    });
+
+    let task = app
+        .coordinator
+        .tasks
+        .get(&task_id)
+        .expect("task must exist");
+    assert_eq!(task.state, TaskState::Failed);
+    assert_eq!(task.error_code.as_deref(), Some("ToolUnavailable"));
+    assert!(
+        app.log_lines
+            .iter()
+            .any(|line| line.message.contains("组件未解析"))
+    );
+}
+
+#[test]
 fn menu_actions_open_visible_dialogs() {
     let mut app = RustCatchDesktopApp::default();
 
@@ -63,6 +107,9 @@ fn menu_actions_open_visible_dialogs() {
 
     app.apply_action(AppAction::OpenAbout);
     assert!(matches!(app.open_dialog, Some(UiDialog::About)));
+
+    app.apply_action(AppAction::OpenTaskLog);
+    assert!(matches!(app.open_dialog, Some(UiDialog::TaskLog)));
 
     app.apply_action(AppAction::CloseDialog);
     assert!(app.open_dialog.is_none());

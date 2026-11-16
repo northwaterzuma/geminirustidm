@@ -1,6 +1,6 @@
 use mdm_ipc::{
-    DecimalU64, MediaIntent, OutputPolicy, SizeKind, SourceSpec, TaskPhase, TaskSnapshot,
-    TaskState, CURRENT_SCHEMA_VERSION,
+    CURRENT_SCHEMA_VERSION, DecimalU64, MediaIntent, OutputPolicy, SizeKind, SourceSpec, TaskPhase,
+    TaskSnapshot, TaskState,
 };
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,8 @@ pub struct TaskRecord {
     pub creation_digest: String,
     pub source_kind: String,
     pub source_display: String,
+    /// Raw page URL kept out of snapshots and logs; only the worker uses it.
+    pub worker_source_url: String,
     pub protected_source_ref: String,
     pub output: OutputPolicy,
     pub queue_id: String,
@@ -95,8 +97,12 @@ impl TaskRecord {
             creation_digest,
             source_kind: source_kind.to_string(),
             source_display: redacted,
+            worker_source_url: raw_url.to_string(),
             protected_source_ref: format!("src-ref:{}", task_id),
-            queue_id: output.queue_id.clone().unwrap_or_else(|| "main".to_string()),
+            queue_id: output
+                .queue_id
+                .clone()
+                .unwrap_or_else(|| "main".to_string()),
             output,
             category,
             state: initial_state,
@@ -130,13 +136,19 @@ pub fn infer_category(file_name: &str, is_media: bool) -> String {
     if is_media {
         return "视频 (Video)".to_string();
     }
-    let ext = file_name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    let ext = file_name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
     match ext.as_str() {
         "mp4" | "mkv" | "webm" | "mov" | "avi" | "ts" => "视频 (Video)".to_string(),
         "mp3" | "m4a" | "flac" | "wav" | "opus" | "ogg" => "音乐 (Music)".to_string(),
         "zip" | "rar" | "7z" | "tar" | "gz" | "xz" => "压缩包 (Compressed)".to_string(),
         "exe" | "msi" | "dmg" | "deb" | "rpm" | "appimage" => "程序 (Programs)".to_string(),
-        "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "txt" | "md" => "文档 (Documents)".to_string(),
+        "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "txt" | "md" => {
+            "文档 (Documents)".to_string()
+        }
         _ => "常规 (General)".to_string(),
     }
 }

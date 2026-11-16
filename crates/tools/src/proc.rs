@@ -23,7 +23,9 @@ pub fn build_ytdlp_command(
     page_url: &str,
     fragment_concurrency: u8,
 ) -> Result<ControlledCommandSpec, ErrorDetail> {
-    if page_url.starts_with('-') || ! (page_url.starts_with("https://") || page_url.starts_with("http://")) {
+    if page_url.starts_with('-')
+        || !(page_url.starts_with("https://") || page_url.starts_with("http://"))
+    {
         return Err(ErrorDetail {
             code: ErrorCode::InvalidRequest,
             message: "Invalid or unsafe media page URL".to_string(),
@@ -31,7 +33,7 @@ pub fn build_ytdlp_command(
             retry_after_ms: None,
         });
     }
-    let args = vec![
+    let mut args = vec![
         "--ignore-config".to_string(),
         "--no-Playlist".to_ascii_lowercase(),
         "--newline".to_string(),
@@ -41,18 +43,29 @@ pub fn build_ytdlp_command(
         fragment_concurrency.clamp(1, 8).to_string(),
         "--ffmpeg-location".to_string(),
         ffmpeg_dir.to_string_lossy().to_string(),
-        "--proxy".to_string(),
-        local_relay_proxy_url.to_string(),
+    ];
+    if !local_relay_proxy_url.trim().is_empty() {
+        args.push("--proxy".to_string());
+        args.push(local_relay_proxy_url.to_string());
+    }
+    args.extend([
         "-f".to_string(),
         format_expr.to_string(),
         "-o".to_string(),
         output_template.to_string(),
         "--".to_string(),
         page_url.to_string(),
-    ];
+    ]);
 
     let clean_env = vec![
-        ("DENO_INSTALL_ROOT".to_string(), deno_bin.parent().unwrap_or(Path::new(".")).to_string_lossy().to_string()),
+        (
+            "DENO_INSTALL_ROOT".to_string(),
+            deno_bin
+                .parent()
+                .unwrap_or(Path::new("."))
+                .to_string_lossy()
+                .to_string(),
+        ),
         ("NO_COLOR".to_string(), "1".to_string()),
     ];
 

@@ -155,3 +155,22 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - 文档提交 `d12ad26` 的 CI run 43865245516 同样 4/4 jobs success。
 - 为便于直接验证修复版本，基于 `d12ad26` 新建预发布标签 `v0.1.1-ui-fix`；Release 工作流 run 43866171544 success。
 - 新 Windows 便携包：`rustcatch-win64-portable-unsigned-test.zip`，SHA-256 `831df8497d4efaaf4d40c7e2246a38601be347c953ffd88185b624f9dbb5fd74`，地址：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.1-ui-fix
+
+## 下载执行链路与诊断日志（2026-11-16）
+
+用户第二轮截图：任务已被创建并显示 `Running | 0 B`，但没有真实下载，也看不到信息/日志。
+
+根因（已确认）：
+
+- `TaskCoordinator::control_task(Resume/Retry)` 只把任务改成 `Running`，全工程没有任何 `Command::spawn` / `tokio::process` 调用；`apply_worker_event` 只有消费端，没有生产端。
+- `crates/tools/src/proc.rs::build_ytdlp_command`、`components.rs::verify_ready_for_execution`、`ytdlp_errors.rs::classify_ytdlp_stderr` 都是纯函数，只被测试调用，生产代码没有接线。
+- `COMPONENT_LOCK.json` 仍是 `unresolved_do_not_execute`，`component_set_id=null`、所有组件 `sha256=null`；按规格禁止执行未核验工具。
+
+本轮修复：
+
+- 新增 `crates/app/src/runner.rs`：后台线程接收 `StartRequest`，先执行组件闸门；若组件已核验，则调用 `build_ytdlp_command` 生成受控 argv，用 `Command` 启动 yt-dlp，独立消费 stdout/stderr，解析进度字节和错误分类，再发 `WorkerEvent`。
+- `crates/app/src/model.rs` 增加 `worker_source_url`，保留原始 URL 供 worker 使用；快照和日志仍只显示脱敏 URL。
+- `crates/app/src/task_coordinator.rs` 增加 `mark_task_failed`，worker 失败时按 `attempt_id` 写入 `Failed`、错误码和原因，避免旧 attempt 污染状态。
+- `crates/app/src/ui.rs` / `app.rs`：新增任务日志窗口、工具栏“日志”、查看菜单“任务日志”、右键“日志”；下载信息窗显示实时状态、attempt、已接收字节、错误码和原因；状态栏显示最近一条日志；有运行任务时定时请求重绘以刷新进度。
+- 当前组件锁未解析，因此新包的真实行为是：任务列表会显示 `Failed / ToolUnavailable`，日志明确写出 `COMPONENT_LOCK status is unresolved_do_not_execute` 和缺少已验证 yt-dlp/EJS/Deno/FFmpeg。**这仍是诊断包，不是可下载包**。
+- 若要真正下载，下一步必须在 GitHub Actions 发布流程里解析并核验官方组件、写入 `COMPONENT_LOCK.json` 并随包分发，或由用户显式配置“用户提供的工具路径”；不能伪造 SHA-256 或直接调用系统 PATH 里的 yt-dlp。
