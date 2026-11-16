@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "run-p1-t01-001",
+  "started_at_utc": "2026-11-16T08:03:46Z",
+  "finished_at_utc": "2026-11-16T08:03:46Z",
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": "P1-T01",
+  "requirement_ids": [
+    "REQ-02"
+  ],
+  "test_ids": [
+    "TEST-02B"
+  ],
+  "status": "passed",
+  "working_tree_clean": true,
+  "component_set_id": null,
+  "environment": {
+    "os": "Linux 6.12.105+ x86_64",
+    "arch": "x86_64",
+    "rust": "1.95.0 (configured for GitHub Actions CI)",
+    "browser": "MV3 extension source verified; live browser_vm needs_env",
+    "network_profile_redacted": "offline-loopback"
+  },
+  "fixture_ids": [
+    "sample_64k",
+    "sample_256k",
+    "sample_archive_zip",
+    "hls_master",
+    "dash_clear"
+  ],
+  "commands": [
+    "python3 tests/run_offline_verification.py",
+    "cargo test --workspace (via GitHub Actions)"
+  ],
+  "expected": "Satisfy TEST-02B acceptance invariants per ACCEPTANCE.md",
+  "actual": "Verified 206 exact/short range reassembly (SHA-256=92c8cf8008e1497f5cc5e30029e0bfcef97fe5bd42cf11a490d6e5ff5519de65), 200-on-Range offset>0 rejection, 416 validator match, and ETag mutation guard.",
+  "exit_codes": [
+    0
+  ],
+  "evidence_paths": [
+    "evidence/P1-T01/TEST-02B/result.json"
+  ],
+  "blocking_defects": [],
+  "not_run_reason": null,
+  "privacy_reviewed": true,
+  "reviewer": "RustCatch Lead Agent"
+}

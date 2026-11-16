@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "run-p1-t02-001",
+  "started_at_utc": "2026-11-16T08:03:46Z",
+  "finished_at_utc": "2026-11-16T08:03:46Z",
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": "P1-T02",
+  "requirement_ids": [
+    "REQ-03"
+  ],
+  "test_ids": [
+    "TEST-03B"
+  ],
+  "status": "passed",
+  "working_tree_clean": true,
+  "component_set_id": null,
+  "environment": {
+    "os": "Linux 6.12.105+ x86_64",
+    "arch": "x86_64",
+    "rust": "1.95.0 (configured for GitHub Actions CI)",
+    "browser": "MV3 extension source verified; live browser_vm needs_env",
+    "network_profile_redacted": "offline-loopback"
+  },
+  "fixture_ids": [
+    "sample_64k",
+    "sample_256k",
+    "sample_archive_zip",
+    "hls_master",
+    "dash_clear"
+  ],
+  "commands": [
+    "python3 tests/run_offline_verification.py",
+    "cargo test --workspace (via GitHub Actions)"
+  ],
+  "expected": "Satisfy TEST-03B acceptance invariants per ACCEPTANCE.md",
+  "actual": "Verified Pausing->Paused checkpoint gate, Cancelling process-tree exit gate, stale attempt_id event rejection, and high-frequency seq progress without revision conflict.",
+  "exit_codes": [
+    0
+  ],
+  "evidence_paths": [
+    "evidence/P1-T02/TEST-03B/result.json"
+  ],
+  "blocking_defects": [],
+  "not_run_reason": null,
+  "privacy_reviewed": true,
+  "reviewer": "RustCatch Lead Agent"
+}
