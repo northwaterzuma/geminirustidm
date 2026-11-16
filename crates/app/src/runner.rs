@@ -118,21 +118,101 @@ fn format_expr(intent: Option<&MediaIntent>) -> &'static str {
     }
 }
 
-fn output_template(request: &StartRequest) -> String {
-    let stem = request
-        .file_name_hint
+fn output_stem(file_name_hint: &str) -> &str {
+    file_name_hint
         .rsplit_once('.')
         .map(|(stem, _)| stem)
         .filter(|stem| !stem.is_empty())
-        .unwrap_or(&request.file_name_hint);
-    match request.output_dir.as_deref().map(str::trim) {
-        Some(dir) if !dir.is_empty() => format!(
-            "{}/{}",
-            dir.trim_end_matches(|c| c == '/' || c == '\\'),
-            stem
-        ),
-        _ => stem.to_string(),
+        .unwrap_or(file_name_hint)
+}
+
+/// Empty output directory falls back to a `Downloads` sub-folder next to the executable.
+fn resolve_output_dir(requested: Option<&str>, root: &Path) -> PathBuf {
+    match requested.map(str::trim) {
+        Some(dir) if !dir.is_empty() => PathBuf::from(dir),
+        _ => root.join("Downloads"),
     }
+}
+
+fn output_template(request: &StartRequest, out_dir: &Path) -> String {
+    out_dir
+        .join(output_stem(&request.file_name_hint))
+        .to_string_lossy()
+        .to_string()
+}
+
+/// yt-dlp fragment files look like `<stem>.f399.mp4`; the merged file keeps only `<stem>.<ext>`.
+fn is_fragment(name: &str, stem: &str) -> bool {
+    let prefix = format!("{}.f", stem);
+    let Some(rest) = name.strip_prefix(&prefix) else {
+        return false;
+    };
+    let digits: String = rest.chars().take_while(|c| c.is_ascii_digit()).collect();
+    !digits.is_empty() && rest[digits.len()..].starts_with('.')
+}
+
+fn probe_has_audio(ffprobe: &Path, file: &Path) -> bool {
+    Command::new(ffprobe)
+        .args(["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0"])
+        .arg(file)
+        .output()
+        .map(|out| {
+            String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .any(|line| line.trim() == "audio")
+        })
+        .unwrap_or(false)
+}
+
+/// Verifies the merged output, removes yt-dlp fragments kept by `--keep-video`,
+/// and returns a human-readable completion line with the final absolute path.
+fn finalize_output(
+    out_dir: &Path,
+    file_name_hint: &str,
+    ffprobe: &Path,
+) -> Result<String, String> {
+    let stem = output_stem(file_name_hint);
+    let entries = std::fs::read_dir(out_dir)
+        .map_err(|err| format!("读取输出目录失败: {}", err))?;
+    let mut candidates = Vec::new();
+    let mut fragments = Vec::new();
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.starts_with(stem) {
+            continue;
+        }
+        if is_fragment(&name, stem) {
+            fragments.push(entry.path());
+            continue;
+        }
+        let ext = name
+            .rsplit_once('.')
+            .map(|(_, ext)| ext.to_ascii_lowercase())
+            .unwrap_or_default();
+        if matches!(
+            ext.as_str(),
+            "mp4" | "webm" | "mkv" | "mov" | "m4a" | "mp3" | "flac" | "opus"
+        ) {
+            candidates.push(entry.path());
+        }
+    }
+    let final_path = candidates
+        .into_iter()
+        .max_by_key(|path| std::fs::metadata(path).and_then(|m| m.modified()).ok())
+        .ok_or_else(|| format!("未在 {} 找到合并成品", out_dir.display()))?;
+    let has_audio = probe_has_audio(ffprobe, &final_path);
+    let mut removed = 0usize;
+    for fragment in fragments {
+        if std::fs::remove_file(&fragment).is_ok() {
+            removed += 1;
+        }
+    }
+    Ok(format!(
+        "下载完成: {} | 音轨: {} | 已清理 {} 个中间文件",
+        final_path.display(),
+        if has_audio { "有" } else { "无" },
+        removed
+    ))
 }
 
 fn parse_downloaded_bytes(line: &str) -> Option<u64> {
@@ -221,13 +301,32 @@ fn handle_request(request: StartRequest, event_tx: &Sender<WorkerEvent>) {
         .unwrap_or_else(|| root.join("components/deno/deno.exe"));
     let ffmpeg_bin = component_path(&manifest, &root, "ffmpeg")
         .unwrap_or_else(|| root.join("components/ffmpeg/ffmpeg.exe"));
+    let ffprobe_bin = component_path(&manifest, &root, "ffprobe")
+        .unwrap_or_else(|| root.join("components/ffmpeg/ffprobe.exe"));
+    let out_dir = resolve_output_dir(request.output_dir.as_deref(), &root);
+    if let Err(error) = std::fs::create_dir_all(&out_dir) {
+        let detail = ErrorDetail {
+            code: ErrorCode::InternalError,
+            message: format!("创建下载目录失败 {}: {}", out_dir.display(), error),
+            retryable: false,
+            retry_after_ms: None,
+        };
+        log(event_tx, &request.task_id, detail.message.clone());
+        fail(event_tx, &request.task_id, &request.attempt_id, detail);
+        return;
+    }
+    log(
+        event_tx,
+        &request.task_id,
+        format!("下载目录: {}", out_dir.display()),
+    );
     let spec = match build_ytdlp_command(
         &ytdlp_bin,
         ffmpeg_bin.parent().unwrap_or(&root),
         &deno_bin,
         "",
         format_expr(request.media_intent.as_ref()),
-        &output_template(&request),
+        &output_template(&request, &out_dir),
         &request.page_url,
         4,
     ) {
@@ -315,6 +414,14 @@ fn handle_request(request: StartRequest, event_tx: &Sender<WorkerEvent>) {
     }
     match status {
         Ok(status) if status.success() => {
+            match finalize_output(&out_dir, &request.file_name_hint, &ffprobe_bin) {
+                Ok(summary) => log(event_tx, &request.task_id, summary),
+                Err(error) => log(
+                    event_tx,
+                    &request.task_id,
+                    format!("成品校验提示: {}", error),
+                ),
+            }
             let _ = event_tx.send(WorkerEvent::Completed {
                 task_id: request.task_id.clone(),
                 attempt_id: request.attempt_id.clone(),
@@ -380,5 +487,71 @@ mod tests {
         let failure = failure.expect("worker must report a terminal failure");
         assert_eq!(failure.code, ErrorCode::ToolUnavailable);
         assert!(failure.message.contains("COMPONENT_LOCK"));
+    }
+
+    #[test]
+    fn empty_output_dir_falls_back_to_downloads_subfolder() {
+        let root = Path::new("C:/apps/rustcatch");
+        let resolved = resolve_output_dir(None, root);
+        assert_eq!(resolved, root.join("Downloads"));
+        assert_eq!(
+            resolve_output_dir(Some("  D:/videos  "), root),
+            PathBuf::from("D:/videos")
+        );
+        assert_eq!(
+            resolve_output_dir(Some("   "), root),
+            root.join("Downloads")
+        );
+
+        let request = StartRequest {
+            task_id: "t".into(),
+            attempt_id: "a".into(),
+            page_url: "https://youtu.be/x".into(),
+            file_name_hint: "youtube_x.mp4".into(),
+            output_dir: None,
+            media_intent: None,
+        };
+        assert_eq!(
+            output_template(&request, &resolved),
+            root.join("Downloads").join("youtube_x").to_string_lossy()
+        );
+    }
+
+    #[test]
+    fn fragment_files_are_detected_but_merged_output_is_kept() {
+        assert!(is_fragment("youtube_x.f399.mp4", "youtube_x"));
+        assert!(is_fragment("youtube_x.f251.webm", "youtube_x"));
+        assert!(!is_fragment("youtube_x.webm", "youtube_x"));
+        assert!(!is_fragment("youtube_x.mp4", "youtube_x"));
+        assert!(!is_fragment("other.f399.mp4", "youtube_x"));
+    }
+
+    #[test]
+    fn finalize_output_removes_fragments_and_reports_final_path() {
+        let root = std::env::temp_dir().join(format!(
+            "rustcatch-finalize-{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&root).expect("create temp dir");
+        let stem = "youtube_x";
+        std::fs::write(root.join(format!("{}.f399.mp4", stem)), b"video").unwrap();
+        std::fs::write(root.join(format!("{}.f251.webm", stem)), b"audio").unwrap();
+        std::fs::write(root.join(format!("{}.webm", stem)), b"merged").unwrap();
+        std::fs::write(root.join("unrelated.txt"), b"keep").unwrap();
+
+        let summary = finalize_output(
+            &root,
+            "youtube_x.mp4",
+            Path::new("C:/nonexistent/ffprobe.exe"),
+        )
+        .expect("finalize must find merged output");
+        assert!(summary.contains("音轨: 无"), "summary={}", summary);
+        assert!(summary.contains("已清理 2 个中间文件"), "summary={}", summary);
+        assert!(!root.join(format!("{}.f399.mp4", stem)).exists());
+        assert!(!root.join(format!("{}.f251.webm", stem)).exists());
+        assert!(root.join(format!("{}.webm", stem)).exists());
+        assert!(root.join("unrelated.txt").exists());
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

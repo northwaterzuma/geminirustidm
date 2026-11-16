@@ -201,6 +201,40 @@ fn safe_file_stem(raw: &str) -> String {
     }
 }
 
+/// Default save directory shown in UI-03: `Downloads` next to the running executable.
+pub fn default_download_directory() -> String {
+    std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(|parent| parent.join("Downloads")))
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|| "Downloads".to_string())
+}
+
+/// Maps a category-tree label to a predicate over task records.
+/// Status categories use `state`; type categories use the inferred file category;
+/// queue categories use `queue_id`.
+pub fn task_matches_category(
+    task: &crate::model::TaskRecord,
+    category: &str,
+) -> bool {
+    if category.starts_with("所有下载") {
+        return true;
+    }
+    if category.starts_with("未完成") {
+        return !matches!(task.state, TaskState::Completed | TaskState::Cancelled);
+    }
+    if category.starts_with("已完成") {
+        return task.state == TaskState::Completed;
+    }
+    if category.starts_with("主队列") {
+        return task.queue_id == "main";
+    }
+    if category.starts_with("同步队列") {
+        return task.queue_id == "sync";
+    }
+    task.category == category
+}
+
 fn default_media_intent() -> MediaIntent {
     MediaIntent {
         version: 1,
@@ -413,7 +447,7 @@ impl RustCatchDesktopApp {
         self.pending_task_id = None;
         self.pending_url = trimmed.to_string();
         self.pending_file_name = file_name;
-        self.pending_directory = String::new();
+        self.pending_directory = default_download_directory();
         self.pending_category = if identity.is_some() {
             "视频 (Video)".to_string()
         } else {

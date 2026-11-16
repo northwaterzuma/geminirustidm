@@ -1,4 +1,7 @@
-use crate::ui::{AppAction, LogLevel, RustCatchDesktopApp, UiDialog, compute_toolbar_states};
+use crate::ui::{
+    AppAction, LogLevel, RustCatchDesktopApp, UiDialog, compute_toolbar_states,
+    task_matches_category,
+};
 use mdm_ipc::TaskSnapshot;
 use std::time::Duration;
 
@@ -199,8 +202,15 @@ impl eframe::App for RustCatchDesktopApp {
                     "主队列 (Main Queue)",
                     "同步队列 (Sync Queue)",
                 ] {
+                    let count = self
+                        .coordinator
+                        .tasks
+                        .values()
+                        .filter(|task| task_matches_category(task, category))
+                        .count();
+                    let label = format!("{} ({})", category, count);
                     if ui
-                        .selectable_label(self.selected_category == category, category)
+                        .selectable_label(self.selected_category == category, label)
                         .clicked()
                     {
                         action = Some(AppAction::SelectCategory(category.to_string()));
@@ -231,9 +241,19 @@ impl eframe::App for RustCatchDesktopApp {
                 .coordinator
                 .tasks
                 .values()
+                .filter(|task| task_matches_category(task, &self.selected_category))
                 .map(|task| (task.task_id.clone(), task.to_snapshot()))
                 .collect();
+            ui.label(format!(
+                "当前分类: {} | 显示 {} / {} 个任务",
+                self.selected_category,
+                rows.len(),
+                self.coordinator.tasks.len()
+            ));
             egui::ScrollArea::vertical().show(ui, |ui| {
+                if rows.is_empty() {
+                    ui.label("该分类下暂无任务。");
+                }
                 for (task_id, snap) in rows {
                     let is_selected = self.selected_task_ids.contains(&task_id);
                     let response = ui.selectable_label(

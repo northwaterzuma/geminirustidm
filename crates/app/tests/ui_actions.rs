@@ -1,4 +1,7 @@
-use mdm_app::{AppAction, RustCatchDesktopApp, UiDialog, WorkerEvent};
+use mdm_app::{
+    AppAction, RustCatchDesktopApp, TaskRecord, UiDialog, WorkerEvent, default_download_directory,
+    task_matches_category,
+};
 use mdm_ipc::{ErrorCode, ErrorDetail, TaskState};
 
 #[test]
@@ -93,6 +96,48 @@ fn worker_failure_marks_task_failed_and_writes_log() {
             .iter()
             .any(|line| line.message.contains("组件未解析"))
     );
+}
+
+#[test]
+fn default_directory_is_downloads_and_prefills_download_info() {
+    let dir = default_download_directory();
+    assert!(
+        dir.ends_with("Downloads") || dir == "Downloads",
+        "default directory should be a Downloads folder, got {}",
+        dir
+    );
+
+    let mut app = RustCatchDesktopApp::default();
+    assert!(app.prepare_add_url("https://youtu.be/l7sCL3geF0U"));
+    assert_eq!(app.pending_directory, dir);
+
+    app.pending_start_now = false;
+    assert!(app.confirm_pending_download());
+    let task = app.coordinator.tasks.values().next().expect("task exists");
+    assert_eq!(task.output.directory_ref.as_deref(), Some(dir.as_str()));
+}
+
+#[test]
+fn category_filter_splits_finished_and_unfinished_tasks() {
+    let mut app = RustCatchDesktopApp::default();
+    assert!(app.prepare_add_url("https://youtu.be/l7sCL3geF0U"));
+    app.pending_start_now = false;
+    assert!(app.confirm_pending_download());
+    let id = app.coordinator.tasks.keys().next().cloned().expect("task id");
+
+    let all: Vec<&TaskRecord> = app.coordinator.tasks.values().collect();
+    assert_eq!(all.iter().filter(|t| task_matches_category(t, "所有下载 (All Downloads)")).count(), 1);
+    assert_eq!(all.iter().filter(|t| task_matches_category(t, "未完成 (Unfinished)")).count(), 1);
+    assert_eq!(all.iter().filter(|t| task_matches_category(t, "已完成 (Finished)")).count(), 0);
+    assert_eq!(all.iter().filter(|t| task_matches_category(t, "视频 (Video)")).count(), 1);
+    assert_eq!(all.iter().filter(|t| task_matches_category(t, "主队列 (Main Queue)")).count(), 1);
+
+    if let Some(task) = app.coordinator.tasks.get_mut(&id) {
+        task.state = TaskState::Completed;
+    }
+    let all: Vec<&TaskRecord> = app.coordinator.tasks.values().collect();
+    assert_eq!(all.iter().filter(|t| task_matches_category(t, "已完成 (Finished)")).count(), 1);
+    assert_eq!(all.iter().filter(|t| task_matches_category(t, "未完成 (Unfinished)")).count(), 0);
 }
 
 #[test]
