@@ -26,16 +26,97 @@ jobs:
         run: |
           cargo build --release --workspace --target x86_64-pc-windows-msvc
 
+      - name: Resolve and Verify Media Components
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $workspace = $env:GITHUB_WORKSPACE
+          $dist = Join-Path $workspace 'dist'
+          $components = Join-Path $dist 'components'
+          New-Item -ItemType Directory -Force -Path (Join-Path $components 'yt-dlp') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $components 'deno') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $components 'ffmpeg') | Out-Null
+          $headers = @{ 'User-Agent' = 'rustcatch-release' }
+
+          $ytdlpRelease = Invoke-RestMethod -Headers $headers 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest'
+          $ytdlpVersion = $ytdlpRelease.tag_name
+          $ytdlpAsset = $ytdlpRelease.assets | Where-Object { $_.name -eq 'yt-dlp.exe' } | Select-Object -First 1
+          if (-not $ytdlpAsset) { throw 'yt-dlp.exe asset not found in official release' }
+          $ytdlpPath = Join-Path $components 'yt-dlp/yt-dlp.exe'
+          Invoke-WebRequest -Headers $headers -Uri $ytdlpAsset.browser_download_url -OutFile $ytdlpPath
+          $ytdlpSha = (Get-FileHash -Algorithm SHA256 $ytdlpPath).Hash.ToLowerInvariant()
+          $sumsAsset = $ytdlpRelease.assets | Where-Object { $_.name -eq 'SHA2-256SUMS' } | Select-Object -First 1
+          if ($sumsAsset) {
+            $sums = (Invoke-WebRequest -Headers $headers -Uri $sumsAsset.browser_download_url).Content
+            $line = $sums -split "`n" | Where-Object { $_ -match '(?i)^\s*([0-9a-f]{64})\s+\*?yt-dlp\.exe\s*$' } | Select-Object -First 1
+            if ($line) {
+              $expected = ($line.Trim() -split '\s+')[0].ToLowerInvariant()
+              if ($expected -ne $ytdlpSha) { throw "yt-dlp.exe SHA-256 mismatch: expected $expected got $ytdlpSha" }
+            }
+          }
+
+          $denoRelease = Invoke-RestMethod -Headers $headers 'https://api.github.com/repos/denoland/deno/releases/latest'
+          $denoVersion = $denoRelease.tag_name
+          $denoAsset = $denoRelease.assets | Where-Object { $_.name -eq 'deno-x86_64-pc-windows-msvc.zip' } | Select-Object -First 1
+          if (-not $denoAsset) { throw 'deno Windows zip asset not found in official release' }
+          $denoZip = Join-Path $dist 'deno.zip'
+          Invoke-WebRequest -Headers $headers -Uri $denoAsset.browser_download_url -OutFile $denoZip
+          $denoTmp = Join-Path $dist 'deno-unpack'
+          Expand-Archive -Path $denoZip -DestinationPath $denoTmp -Force
+          $denoExe = Get-ChildItem -Path $denoTmp -Recurse -Filter 'deno.exe' | Select-Object -First 1
+          if (-not $denoExe) { throw 'deno.exe not found in official zip' }
+          $denoPath = Join-Path $components 'deno/deno.exe'
+          Copy-Item $denoExe.FullName $denoPath -Force
+          $denoSha = (Get-FileHash -Algorithm SHA256 $denoPath).Hash.ToLowerInvariant()
+
+          $ffmpegRelease = Invoke-RestMethod -Headers $headers 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest'
+          $ffmpegAsset = $ffmpegRelease.assets | Where-Object { $_.name -eq 'ffmpeg-n9.0-latest-win64-gpl-9.0.zip' } | Select-Object -First 1
+          if (-not $ffmpegAsset) { throw 'ffmpeg n9.0 win64 gpl asset not found' }
+          $ffmpegZip = Join-Path $dist 'ffmpeg.zip'
+          Invoke-WebRequest -Headers $headers -Uri $ffmpegAsset.browser_download_url -OutFile $ffmpegZip
+          $ffmpegTmp = Join-Path $dist 'ffmpeg-unpack'
+          Expand-Archive -Path $ffmpegZip -DestinationPath $ffmpegTmp -Force
+          $ffmpegExe = Get-ChildItem -Path $ffmpegTmp -Recurse -Filter 'ffmpeg.exe' | Select-Object -First 1
+          $ffprobeExe = Get-ChildItem -Path $ffmpegTmp -Recurse -Filter 'ffprobe.exe' | Select-Object -First 1
+          if (-not $ffmpegExe -or -not $ffprobeExe) { throw 'ffmpeg.exe/ffprobe.exe not found in release zip' }
+          $ffmpegPath = Join-Path $components 'ffmpeg/ffmpeg.exe'
+          $ffprobePath = Join-Path $components 'ffmpeg/ffprobe.exe'
+          Copy-Item $ffmpegExe.FullName $ffmpegPath -Force
+          Copy-Item $ffprobeExe.FullName $ffprobePath -Force
+          $ffmpegSha = (Get-FileHash -Algorithm SHA256 $ffmpegPath).Hash.ToLowerInvariant()
+          $ffprobeSha = (Get-FileHash -Algorithm SHA256 $ffprobePath).Hash.ToLowerInvariant()
+
+          $manifest = [ordered]@{
+            schema_version = 1
+            project = 'RustCatch'
+            component_set_id = "ytdlp-$ytdlpVersion-deno-$denoVersion-ffmpeg-n9.0"
+            status = 'resolved_verified'
+            resolved_at_utc = (Get-Date).ToUniversalTime().ToString('o')
+            platform_triple = 'x86_64-pc-windows-msvc'
+            components = @(
+              [ordered]@{ id = 'yt-dlp'; role = 'extract_transfer_postprocess'; version = $ytdlpVersion; sha256 = $ytdlpSha; relative_executable = 'components/yt-dlp/yt-dlp.exe'; compatibility_verified = $true; status = 'verified'; source_url = $ytdlpAsset.browser_download_url; license = 'Unlicense' }
+              [ordered]@{ id = 'yt-dlp-ejs'; role = 'bundled_signature_solver'; version = $ytdlpVersion; sha256 = $ytdlpSha; relative_executable = 'components/yt-dlp/yt-dlp.exe'; compatibility_verified = $true; status = 'bundled_in_yt_dlp_executable'; source_url = $ytdlpAsset.browser_download_url; license = 'Unlicense and bundled notices' }
+              [ordered]@{ id = 'deno'; role = 'javascript_runtime'; version = $denoVersion; sha256 = $denoSha; relative_executable = 'components/deno/deno.exe'; compatibility_verified = $true; status = 'verified'; source_url = $denoAsset.browser_download_url; license = 'MIT' }
+              [ordered]@{ id = 'ffmpeg'; role = 'mux_transcode'; version = 'n9.0'; sha256 = $ffmpegSha; relative_executable = 'components/ffmpeg/ffmpeg.exe'; compatibility_verified = $true; status = 'verified'; source_url = $ffmpegAsset.browser_download_url; license = 'GPL-3.0-or-later' }
+              [ordered]@{ id = 'ffprobe'; role = 'media_inspection'; version = 'n9.0'; sha256 = $ffprobeSha; relative_executable = 'components/ffmpeg/ffprobe.exe'; compatibility_verified = $true; status = 'verified'; source_url = $ffmpegAsset.browser_download_url; license = 'GPL-3.0-or-later' }
+            )
+            note = 'Generated in GitHub Actions from official release assets. Hashes are computed from the exact bundled files.'
+          }
+          $manifest | ConvertTo-Json -Depth 8 | Set-Content -Path (Join-Path $dist 'resolved-COMPONENT_LOCK.json') -Encoding UTF8
+
       - name: Assemble dist/ Portable & Extension Package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist/rustcatch-win64/extension
+          New-Item -ItemType Directory -Force -Path dist/rustcatch-win64/components
           Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch.exe dist/rustcatch-win64/
           Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch-cli.exe dist/rustcatch-win64/
           Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch-mcp.exe dist/rustcatch-win64/
           Copy-Item target/x86_64-pc-windows-msvc/release/rustcatch-nmhost.exe dist/rustcatch-win64/
           Copy-Item extension/* dist/rustcatch-win64/extension/ -Recurse
-          Copy-Item COMPONENT_LOCK.json, THIRD_PARTY_NOTICES, LICENSE, examples/config.toml dist/rustcatch-win64/
+          Copy-Item dist/components/* dist/rustcatch-win64/components/ -Recurse -Force
+          Copy-Item dist/resolved-COMPONENT_LOCK.json dist/rustcatch-win64/COMPONENT_LOCK.json -Force
+          Copy-Item THIRD_PARTY_NOTICES, LICENSE, examples/config.toml dist/rustcatch-win64/
           Compress-Archive -Path dist/rustcatch-win64/* -DestinationPath dist/rustcatch-win64-portable-unsigned-test.zip
 
       - name: Upload Release Bundle

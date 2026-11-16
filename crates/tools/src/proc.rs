@@ -49,6 +49,8 @@ pub fn build_ytdlp_command(
         args.push(local_relay_proxy_url.to_string());
     }
     args.extend([
+        "--js-runtimes".to_string(),
+        format!("deno:{}", deno_bin.to_string_lossy()),
         "-f".to_string(),
         format_expr.to_string(),
         "-o".to_string(),

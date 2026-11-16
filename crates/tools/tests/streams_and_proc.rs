@@ -2,8 +2,8 @@
 //! Covers TEST-05B (manifest safety) and TEST-06/12A (no shell, locked paths).
 
 use mdm_ipc::ErrorCode;
-use mdm_tools::streams::DrmStatus;
 use mdm_tools::proc::build_ytdlp_command;
+use mdm_tools::streams::DrmStatus;
 use mdm_tools::streams::{parse_dash_manifest, parse_hls_manifest, resolve_and_validate_media_uri};
 use mdm_tools::video::extract_youtube_identity;
 use std::path::Path;
@@ -14,8 +14,17 @@ const BASE: &str = "https://cdn.example.invalid/hls/master.m3u8";
 
 #[test]
 fn test_manifest_uri_rejects_file_javascript_data_and_non_http() {
-    for bad in ["file:///etc/passwd", "javascript:alert(1)", "data:text/plain,x", "ftp://host/a"] {
-        assert!(resolve_and_validate_media_uri(BASE, bad).is_err(), "must reject {}", bad);
+    for bad in [
+        "file:///etc/passwd",
+        "javascript:alert(1)",
+        "data:text/plain,x",
+        "ftp://host/a",
+    ] {
+        assert!(
+            resolve_and_validate_media_uri(BASE, bad).is_err(),
+            "must reject {}",
+            bad
+        );
     }
 }
 
@@ -64,10 +73,21 @@ fn test_hls_discontinuity_and_byterange_identity() {
 
 #[test]
 fn test_dash_rejects_xxe_and_content_protection() {
-    let xxe = "<?xml version=\"1.0\"?><!DOCTYPE mpd [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><MPD/>";
-    assert_eq!(parse_dash_manifest("https://cdn.example.invalid/a.mpd", xxe).unwrap_err().code, ErrorCode::PermissionDenied);
+    let xxe =
+        "<?xml version=\"1.0\"?><!DOCTYPE mpd [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><MPD/>";
+    assert_eq!(
+        parse_dash_manifest("https://cdn.example.invalid/a.mpd", xxe)
+            .unwrap_err()
+            .code,
+        ErrorCode::PermissionDenied
+    );
     let drm = "<MPD><Period><ContentProtection cenc:pssh=\"AAA\"/></Period></MPD>";
-    assert_eq!(parse_dash_manifest("https://cdn.example.invalid/a.mpd", drm).unwrap_err().code, ErrorCode::DrmProtected);
+    assert_eq!(
+        parse_dash_manifest("https://cdn.example.invalid/a.mpd", drm)
+            .unwrap_err()
+            .code,
+        ErrorCode::DrmProtected
+    );
 }
 
 // ---------- TEST-06 / TEST-12A: subprocess argv hardening ----------
@@ -83,9 +103,12 @@ fn test_ytdlp_command_uses_locked_paths_and_no_shell_injection() {
         "%(id)s.%(ext)s",
         "https://www.youtube.com/watch?v=abc123",
         99, // clamp to <=8
-    ).unwrap();
+    )
+    .unwrap();
     assert!(spec.executable.ends_with("yt-dlp.exe"));
     assert!(spec.args.contains(&"--ignore-config".to_string()));
+    assert!(spec.args.contains(&"--js-runtimes".to_string()));
+    assert!(spec.args.iter().any(|arg| arg.starts_with("deno:")));
     assert!(spec.args.contains(&"--no-exec".to_string()));
     assert!(spec.args.contains(&"--keep-video".to_string()));
     // fragment concurrency clamped
@@ -93,17 +116,36 @@ fn test_ytdlp_command_uses_locked_paths_and_no_shell_injection() {
     assert!(!spec.args.contains(&"99".to_string()));
     // page URL passed as a discrete argv after "--", never shell-joined
     let dash = spec.args.iter().position(|a| a == "--").unwrap();
-    assert_eq!(spec.args[dash + 1], "https://www.youtube.com/watch?v=abc123");
+    assert_eq!(
+        spec.args[dash + 1],
+        "https://www.youtube.com/watch?v=abc123"
+    );
     // no shell metacharacters are introduced into a standalone "command" string
-    assert!(!spec.args.iter().any(|a| a.contains("&&") || a.contains("; ")));
+    assert!(
+        !spec
+            .args
+            .iter()
+            .any(|a| a.contains("&&") || a.contains("; "))
+    );
 }
 
 #[test]
 fn test_ytdlp_command_rejects_unsafe_page_url() {
-    for bad in ["-evil-flag", "file:///etc/passwd", "javascript:alert(1)", "not-a-url"] {
+    for bad in [
+        "-evil-flag",
+        "file:///etc/passwd",
+        "javascript:alert(1)",
+        "not-a-url",
+    ] {
         let r = build_ytdlp_command(
-            Path::new("yt-dlp.exe"), Path::new("ffmpeg"), Path::new("deno.exe"),
-            "http://127.0.0.1:1", "bv", "%(id)s", bad, 4,
+            Path::new("yt-dlp.exe"),
+            Path::new("ffmpeg"),
+            Path::new("deno.exe"),
+            "http://127.0.0.1:1",
+            "bv",
+            "%(id)s",
+            bad,
+            4,
         );
         assert!(r.is_err(), "must reject unsafe URL {}", bad);
     }
@@ -113,8 +155,20 @@ fn test_ytdlp_command_rejects_unsafe_page_url() {
 
 #[test]
 fn test_youtube_watch_shorts_and_you_be_identity() {
-    assert_eq!(extract_youtube_identity("https://www.youtube.com/watch?v=abc123"), Some(("youtube".into(), "abc123".into())));
-    assert_eq!(extract_youtube_identity("https://www.youtube.com/shorts/xyz789"), Some(("youtube".into(), "xyz789".into())));
-    assert_eq!(extract_youtube_identity("https://youtu.be/shortid"), Some(("youtube".into(), "shortid".into())));
-    assert_eq!(extract_youtube_identity("https://example.invalid/watch?v=x"), None);
+    assert_eq!(
+        extract_youtube_identity("https://www.youtube.com/watch?v=abc123"),
+        Some(("youtube".into(), "abc123".into()))
+    );
+    assert_eq!(
+        extract_youtube_identity("https://www.youtube.com/shorts/xyz789"),
+        Some(("youtube".into(), "xyz789".into()))
+    );
+    assert_eq!(
+        extract_youtube_identity("https://youtu.be/shortid"),
+        Some(("youtube".into(), "shortid".into()))
+    );
+    assert_eq!(
+        extract_youtube_identity("https://example.invalid/watch?v=x"),
+        None
+    );
 }

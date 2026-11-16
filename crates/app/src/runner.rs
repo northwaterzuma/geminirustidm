@@ -79,8 +79,13 @@ fn fail(event_tx: &Sender<WorkerEvent>, task_id: &str, attempt_id: &str, error: 
     });
 }
 
-fn load_manifest() -> Result<ComponentLockManifest, ErrorDetail> {
-    serde_json::from_str(COMPONENT_LOCK_JSON).map_err(|err| ErrorDetail {
+fn load_manifest(root: &Path) -> Result<ComponentLockManifest, ErrorDetail> {
+    let runtime_path = root.join("COMPONENT_LOCK.json");
+    let json = match std::fs::read_to_string(&runtime_path) {
+        Ok(json) => json,
+        Err(_) => COMPONENT_LOCK_JSON.to_string(),
+    };
+    serde_json::from_str(&json).map_err(|err| ErrorDetail {
         code: ErrorCode::InternalError,
         message: format!("COMPONENT_LOCK.json 解析失败: {}", err),
         retryable: false,
@@ -114,13 +119,19 @@ fn format_expr(intent: Option<&MediaIntent>) -> &'static str {
 }
 
 fn output_template(request: &StartRequest) -> String {
+    let stem = request
+        .file_name_hint
+        .rsplit_once('.')
+        .map(|(stem, _)| stem)
+        .filter(|stem| !stem.is_empty())
+        .unwrap_or(&request.file_name_hint);
     match request.output_dir.as_deref().map(str::trim) {
         Some(dir) if !dir.is_empty() => format!(
             "{}/{}",
             dir.trim_end_matches(|c| c == '/' || c == '\\'),
-            request.file_name_hint
+            stem
         ),
-        _ => request.file_name_hint.clone(),
+        _ => stem.to_string(),
     }
 }
 
@@ -156,7 +167,8 @@ fn handle_request(request: StartRequest, event_tx: &Sender<WorkerEvent>) {
         ),
     );
 
-    let manifest = match load_manifest() {
+    let root = install_root();
+    let manifest = match load_manifest(&root) {
         Ok(manifest) => manifest,
         Err(error) => {
             log(event_tx, &request.task_id, error.message.clone());
@@ -164,7 +176,6 @@ fn handle_request(request: StartRequest, event_tx: &Sender<WorkerEvent>) {
             return;
         }
     };
-    let root = install_root();
     let component_set_id = match manifest.verify_ready_for_execution(&root) {
         Ok(set_id) => set_id,
         Err(error) => {
