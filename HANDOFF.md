@@ -118,3 +118,13 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - 新包：`rustcatch-win64-portable-unsigned-test.zip`，4.5MB，SHA-256 `684d3ce7…e11ff0`，
   含 4 个 exe + 扩展包。已下载解包验证 `rustcatch.exe` 中确实内嵌字体字节（偏移 2547696）。
 - 仍需真机目视确认菜单中文显示正常（本机为离线 Windows 无 C linker，无法本地启动 GUI）。
+
+
+## 仓库迁移与最终验证（2026-11-16）
+
+- 按用户指令新建公开仓库 `northwaterzuma/wbhy4falshv1`：https://github.com/northwaterzuma/wbhy4falshv1
+- 完整项目（含全部历史、文档、源码、证据、CI/Release 工作流）已推送到该仓库的 `main` 与 `rustcatch/dev-v1` 两个分支，均指向 `da2a7e0ed1c71f9ea0a4f0371a55723d146f45cf`。
+- 新仓库 CI run 43859735381：4/4 jobs success（契约套件 + Windows/MSVC、Ubuntu、macOS 三平台 cargo check/test/build --release）。
+- 源码侧最新测试实测：`cargo test --workspace` 三平台均 **54 passed / 0 failed**（rustcatch 仓库 run 43858104281，job 133267612430）。
+- 保留原 `northwaterzuma/rustcatch` 仓库不删除；wbhy4falshv1 为本次要求的交付仓库。
+- needs_env 门槛不变：GUI 真机、真实浏览器接管、授权在线 YouTube、安装签名、受控 FTPS/AD、macOS/Linux 桌面行为仍未验证，不得写成通过。
