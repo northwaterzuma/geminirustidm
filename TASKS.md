@@ -56,7 +56,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P0-T01 冻结 IDM 界面、行为及完整差距基线
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：无。
 - 需求：REQ-01、REQ-13、REQ-14、REQ-15、REQ-16、REQ-17、REQ-18。
 - 代码/文件归属：desktop-ui / baseline；docs/baseline/idm/、docs/FEATURE_MATRIX.md。
@@ -73,7 +73,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P0-T02 复现固定 MDM 底座与依赖审计
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：无。
 - 需求：REQ-02、REQ-06、REQ-11。
 - 代码/文件归属：architecture / build；Cargo.toml、Cargo.lock、rust-toolchain.toml、SOURCE_LOCK.json 对应实现副本、docs/baseline/UPSTREAM_AUDIT.md。
@@ -90,7 +90,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P0-T03 建立离线 fixtures 与故障服务器
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：无。
 - 需求：REQ-02、REQ-03、REQ-05、REQ-06、REQ-09、REQ-11。
 - 代码/文件归属：release-test；tests/fixtures/、tests/faults/、现有 crates/labserver 等价目录、CI 测试定义。
@@ -107,7 +107,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P1-T01 实现并验证普通 HTTP 下载正确性
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P0-T02、P0-T03。
 - 需求：REQ-02。
 - 代码/文件归属：engine-recovery；crates/engine/src/download.rs、planner.rs、state.rs。
@@ -124,7 +124,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P1-T02 统一任务契约、事件和持久化恢复
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P1-T01。
 - 需求：REQ-03、REQ-04、REQ-06、REQ-12。
 - 代码/文件归属：architecture / coordinator；crates/app/src/model.rs、task_coordinator.rs（拟新增）、crates/ipc/src/task_api.rs（拟新增）及既有状态存储。
@@ -141,7 +141,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P1-T03 把 IDM 风格核心界面绑定到真实任务
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P0-T01、P1-T02。
 - 需求：REQ-01、REQ-03。
 - 代码/文件归属：desktop-ui；crates/app/src/ 的窗口/控件模块；app.rs 由协调负责人合并。
@@ -158,7 +158,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P2-T01 实现可信 Native Messaging 和两阶段接管
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P1-T02。
 - 需求：REQ-04。
 - 代码/文件归属：browser-capture；extension/background.js、crates/nmhost/、crates/ipc/ 的桥接入口。
@@ -175,7 +175,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P2-T02 接入猫抓资源 API 与媒体候选
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P2-T01、P2-T03。
 - 需求：REQ-05、REQ-09。
 - 代码/文件归属：browser-capture / media；extension/ 捕获模块、crates/app/src/capture.rs（拟新增）、crates/tools/src/streams.rs。
@@ -192,7 +192,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P2-T03 固定网络、凭据和资源预算契约
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P0-T02、P1-T02。
 - 需求：REQ-09、REQ-06、REQ-08。
 - 代码/文件归属：architecture / network；crates/engine/ 的网络策略、crates/tools/src/media_policy.rs（拟新增）、可信上下文与系统凭据适配层。
@@ -209,7 +209,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P2-T04 整合为用户只安装一套的正式扩展
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P2-T02。
 - 需求：REQ-04、REQ-05、REQ-11。
 - 代码/文件归属：browser-capture / release；extension/manifest.json、捕获与浮条模块、扩展打包/升级配置。
@@ -226,7 +226,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P3-T01 实现默认 yt-dlp 完整 YouTube 管线
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P1-T02、P2-T03、P0-T03。
 - 需求：REQ-06、REQ-09。
 - 代码/文件归属：media-pipeline；crates/tools/src/video.rs、proc.rs、media_policy.rs 及组件管理器。
@@ -243,7 +243,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P3-T02 完成格式、音轨、字幕与播放列表交互
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P3-T01。
 - 需求：REQ-07、REQ-01。
 - 代码/文件归属：media-pipeline / desktop-ui；crates/tools/src/media_policy.rs、媒体选择 DTO、crates/app/ 视频窗口。
@@ -260,7 +260,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P3-T03 评估 Flux 实验性备用适配器
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：optional。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：optional。
 - 依赖：P3-T01。
 - 需求：REQ-06、REQ-07。
 - 代码/文件归属：media-pipeline（独立适配器负责人）；crates/tools/ 的 feature-gated adapter；不得修改默认解析策略。
@@ -277,7 +277,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P4-T01 实现队列、计划、分类与批量入口
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P1-T02、P1-T03、P2-T01。
 - 需求：REQ-08、REQ-10、REQ-01。
 - 代码/文件归属：desktop-ui / coordinator；crates/app/src/queue.rs、scheduler.rs、分类与批量窗口；限速实现由 network 负责人合并。
@@ -294,7 +294,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P4-T02 实现发行、数据迁移与 MCP 边界
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P0-T02、P1-T02。
 - 需求：REQ-11、REQ-12。
 - 代码/文件归属：release-test / MCP；安装器、更新配置、crates/mcp/、crates/nmhost/ 注册逻辑；共享 DTO 由架构负责人合并。
@@ -311,7 +311,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P4-T03 完成 Windows 首发集成门槛并继续全量目标
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：launch。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：launch。
 - 依赖：P2-T04、P3-T02、P4-T01、P4-T02。
 - 需求：REQ-01、REQ-02、REQ-03、REQ-04、REQ-05、REQ-06、REQ-07、REQ-08、REQ-09、REQ-10、REQ-11、REQ-12。
 - 代码/文件归属：integration / release-test；发行证据、差距矩阵、安装包整合；不借验收重写模块。
@@ -328,7 +328,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P5-T01 补齐 FTP/FTPS 与高级认证
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：full_parity。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：full_parity。
 - 依赖：P0-T01、P1-T02、P2-T03。
 - 需求：REQ-13、REQ-14。
 - 代码/文件归属：engine-recovery / OS-auth；crates/engine/ 协议适配器、隔离的系统认证适配层、对应设置页面。
@@ -345,7 +345,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P5-T02 补齐站点抓取与周期同步
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：full_parity。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：full_parity。
 - 依赖：P0-T01、P4-T01、P2-T03。
 - 需求：REQ-15、REQ-16。
 - 代码/文件归属：coordinator / desktop-ui；现有抓取与调度等价模块、四步向导、持久化项目模型。
@@ -362,7 +362,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P5-T03 补齐 ZIP 预览及 IDM 剩余差距
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：full_parity。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：full_parity。
 - 依赖：P0-T01、P1-T02、P4-T01。
 - 需求：REQ-17、REQ-18、REQ-01。
 - 代码/文件归属：engine-recovery / desktop-ui / OS；ZIP预览适配器、完成动作、基线中未实现窗口与协议。
@@ -379,7 +379,7 @@ P2-T02 使用猫抓 API 验证捕获；P2-T04 将必要能力整合为正式单�
 
 ### P5-T04 完成 macOS/Linux 平台适配与全量评审
 
-- 状态：已实现并通过离线套件验证（真机/云端编译项标 needs_env，详见 tasks.json 与 HANDOFF.md）；scope：cross_platform。
+- 状态：代码实现存在；GitHub CI 编译/35 项 Rust 测试通过（run 43845781548），真机/浏览器/在线等门槛 needs_env；scope：cross_platform。
 - 依赖：P1-T03、P2-T04、P3-T02、P4-T01。
 - 需求：REQ-19。
 - 代码/文件归属：platform / release-test；平台安装器、Native Host注册、系统凭据/代理/托盘等平台层；复用现有核心。

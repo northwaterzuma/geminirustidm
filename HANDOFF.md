@@ -3,12 +3,12 @@
 ```yaml
 project: RustCatch
 spec_version: "1.0"
-updated_at_utc: "2026-11-16T10:05:00Z"
+updated_at_utc: "2026-11-16T10:12:00Z"
 task_id: P0-T02 / P1-T01 (build unblock + real Rust tests)
-status: in_progress
+status: launch_build_verified_needs_env_for_runtime_acceptance
 repo_path: C:/Users/admin/WorkBuddy/spaces/2026_11_16_01-40-43/rustcatch
 branch: rustcatch/dev-v1
-commit: 43a8a814e78d (pending CI verification)
+commit: 40167f3d18a177b68df31e82ea2243d0351af817
 upstream_base: 605a0c74e50361afe77bf1721d7172636bd5c57e
 worktree_status: clean at commit
 changed_files:
@@ -23,8 +23,11 @@ changed_files:
   - Cargo.lock
 requirements: [REQ-02, REQ-03, REQ-06, REQ-07, REQ-08, REQ-11]
 tests_run:
-  - "cargo +stable check --workspace --all-targets: PASS (local, all targets compile)"
-  - "Python offline contract suite (CI job 'Contract Schema & Offline Protocol Suite'): PASS — BUT this is schema/protocol simulation, NOT Rust product tests"
+  - "GitHub Actions run 43845781548 / commit 40167f3: ALL 4 jobs SUCCESS"
+  - "cargo test --workspace on windows-latest (msvc), ubuntu-latest, macos-latest: 35 passed, 0 failed on each"
+  - "cargo build --release --workspace on all 3 targets: SUCCESS"
+  - "cargo +stable check --workspace --all-targets local: PASS"
+  - "Python offline contract suite: PASS (schema/protocol simulation only, NOT Rust product tests)"
 tests_not_run:
   - "cargo test --workspace locally: BLOCKED — no C linker (dlltool CreateProcess fails in sandbox); runs on GitHub CI windows/msvc + ubuntu + macos instead"
   - "TEST-01A/B/C: needs_env (Windows 10/11 GUI VM + IDM baseline)"
@@ -32,6 +35,7 @@ tests_not_run:
   - "TEST-06A/B/C/D + 07A: needs_env (authorized YouTube samples)"
   - "TEST-11B/13A/B/14A/18A/19A: needs_env (installer VM, controlled FTP/TLS/AD servers, macOS/Linux VMs)"
 evidence_paths:
+  - evidence/CI-40167f3/RESULTS.md
   - .github/workflows/ci.yml
   - evidence/P0/ ... evidence/P5-T04/ (prior-session artifacts, unverified claims)
   - crates/engine/tests/product_logic.rs
@@ -47,7 +51,7 @@ decisions:
 blockers:
   - "Local cargo test cannot link (no gcc/dlltool); GitHub CI is authoritative."
   - "No Windows GUI VM / browser VM / authorized YouTube sample / code-signing credential → corresponding acceptance gates remain needs_env."
-next_action: "Await GitHub Actions run 43844950258 on commit 43a8a81; if all three Rust matrix jobs pass, record pass with job IDs; else fix real failures. Then continue P5 gap closure with the same real-test discipline."
+next_action: "Launch build gate passed. Next: (1) add real Rust tests for IPC task coordinator/idempotency and native-messaging handoff state machine; (2) keep P5 needs_env items documented; (3) obtain Windows GUI VM / browser VM / authorized YouTube samples for runtime acceptance."
 ```
 
 ## 最近完成（真实）
@@ -74,3 +78,13 @@ next_action: "Await GitHub Actions run 43844950258 on commit 43a8a81; if all thr
 1. 核对 `git status` 与上方 commit；查看 GitHub Actions run 43844950258 的三个 Rust 矩阵 job 结论。
 2. 若失败，读真实日志修根因；若通过，把 job ID 与通过时间写入证据目录并更新 TASKS.md。
 3. 继续 P5 时坚持同一标准：真实产品函数 + 真实测试 + 真实证据，缺环境标 needs_env。
+
+
+## 构建门槛：已通过（2026-11-16）
+
+GitHub Actions run 43845781548（commit 40167f3）全部 4 个 job success：
+- windows-latest (msvc) / ubuntu-latest / macos-latest 三个目标均完成 cargo check、cargo test、cargo build --release
+- Rust 测试 **35 passed / 0 failed** 每个平台（ipc 4 + engine product_logic 20 + tools media_logic 8 + app scheduler_logic 3）
+- 证据：`evidence/CI-40167f3/RESULTS.md`，含 job ID 与历史失败根因
+
+这验证了"能编译、能测试、能出 release 二进制"，**不等于**产品功能验收通过。GUI 真机、浏览器接管、授权在线 YouTube、安装签名、FTPS/AD 受控域、跨平台桌面行为均保持 needs_env。
