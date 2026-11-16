@@ -228,3 +228,21 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 
 边界：v0.1.4 的 GUI 最终效果仍需用户下载新包真机确认；分片删除只删除本次任务输出目录下匹配 `<stem>.f<digits>.*` 的文件，不碰其他文件。
 
+## 微博短链访客校验跳转修复（2026-11-16T14:43Z）
+
+用户输入 `http://t.cn/AXTh2EWk` 报 `Unsupported URL` 并被误分类为 `NetworkError`。用打包 yt-dlp 实测：短链经 `video.weibo.com/show?fid=...` 跳到 `passport.weibo.com/visitor/visitor?...&url=<编码真实地址>`，yt-dlp 把网关页当目标用 generic 提取器失败；直接喂还原后的 `https://weibo.com/tv/show/1034:5364596685602859` 则 `[WeiboVideo]` 成功解析出带音频的 mp4。
+
+本轮修复（`d4de8b4`）：
+
+- `tools::video::extract_weibo_visitor_target`：纯函数解析 `Following redirect to <url>`，从 visitor 网关 `url=` 参数还原真实地址，并校验目标 host 必须是 weibo.com 或其子域（防恶意域跳转）。
+- `runner::handle_request`：抽出 `run_once` 保留 stdout 行；首次失败后扫描重定向行，还原出不同地址则用同一受控 argv 构造器重试一次，日志写明还原过程。
+- 新增 2 项 Rust 单测（真实日志行还原 + 非目标/恶意目标忽略）。
+
+验证与发布：
+
+- 主 CI run **43886518075**：4/4 jobs success；Windows、Ubuntu、macOS 各 **67 passed / 0 failed**。
+- 标签 `v0.1.5-weibo-redirect` 指向 `d4de8b4`；Release workflow run **43888160976** success，资产 SHA-256 `865385b99b368ca80cfc03f941955a2d9612afa105f28404c6329e6706bd32ca`，地址：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.5-weibo-redirect
+- 证据：`evidence/RELEASE-v0.1.5-weibo-redirect/RESULTS.md`。
+
+边界：本次只解决"访客校验网关跳转"这一已确认失败模式；其它微博反爬/登录墙场景不在范围，v0.1.5 真机端到端下载仍需用户确认。
+
