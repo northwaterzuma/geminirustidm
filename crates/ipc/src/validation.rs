@@ -216,14 +216,14 @@ mod tests {
 
     #[test]
     fn test_decimal_u64_bounds() {
-        let max_str = "18446744073709551615";
+        let max_str = "\"18446744073709551615\"";
         let parsed: DecimalU64 = serde_json::from_str(max_str).unwrap();
         assert_eq!(parsed.0, u64::MAX);
 
-        let overflow_str = "18446744073709551616";
+        let overflow_str = "\"18446744073709551616\"";
         assert!(serde_json::from_str::<DecimalU64>(overflow_str).is_err());
 
-        let leading_zero = "01";
+        let leading_zero = "\"01\"";
         assert!(serde_json::from_str::<DecimalU64>(leading_zero).is_err());
     }
 
