@@ -205,3 +205,26 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - `ToolUnavailable / unresolved_do_not_execute` 的发布包输入问题已经解决。
 - 仍需用户在 Windows 真机解压运行、输入 `https://youtu.be/l7sCL3geF0U` 并观察日志，才能确认在线 YouTube 下载真正完成；在此之前 TEST-06 系列仍为 needs_env，不能写成通过。
 
+## 下载可用性修复（2026-11-16T14:10Z）
+
+用户用 `v0.1.3-components` 真机下载成功，但报告三个问题。用用户指定目录 `C:\00github rust\rustcatch-win64-portable-unsigned-test` 的真实文件 + 包内 ffprobe 验证根因：
+
+- "没声音"：用户打开的是 `youtube_l7sCL3geF0U.f399.mp4`（yt-dlp 纯视频分片，只有 av1 视频）；真正的 `youtube_l7sCL3geF0U.webm` 含 av1 视频 + opus 音频，1920x1080 / 493.6 秒，是有声音的合并成品。分片残留是因为 `--keep-video` 没有在 Rust 验证后清理。
+- "下载到程序根目录"：`output_template` 空目录时返回裸文件名，worker cwd 即 exe 目录。
+- "已完成/未完成看不到东西"：中心列表从未按 `selected_category` 过滤，分类只改高亮。
+
+本轮修复（`49fb35c`）：
+
+- `runner.rs::finalize_output`：成功后用包内 ffprobe 校验成品音轨，删除 `<stem>.f<digits>.*` 分片，日志输出成品绝对路径、音轨有无、清理数量。
+- `runner.rs::resolve_output_dir` + `ui.rs::default_download_directory`：默认下载到 exe 同目录 `Downloads/`，UI-03 预填该路径，用户可改。
+- `ui.rs::task_matches_category` + `app.rs`：按状态/类型/队列过滤任务列表，侧栏显示各分类实时计数，空分类给出提示。
+- 新增 5 项真实 Rust 测试（3 runner + 2 ui）。
+
+验证与发布：
+
+- 主 CI run **43881259247**：4/4 jobs success；Windows、Ubuntu、macOS 各 **65 passed / 0 failed**。
+- 标签 `v0.1.4-ui-understandability` 指向 `49fb35c`；Release workflow run **43882920447** success，资产已挂 Release。发布资产 SHA-256 `1925e68c33ca961fe7d80400be3ef92c459bd028293ab5791861e92d4d7102cf`，地址：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.4-ui-understandability
+- 证据：`evidence/RELEASE-v0.1.4-ui-understandability/RESULTS.md`。
+
+边界：v0.1.4 的 GUI 最终效果仍需用户下载新包真机确认；分片删除只删除本次任务输出目录下匹配 `<stem>.f<digits>.*` 的文件，不碰其他文件。
+
