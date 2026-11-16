@@ -114,8 +114,8 @@ pub fn validate_grabber_target_url(raw_url: &str, allow_explicit_lan: bool) -> R
 pub fn rewrite_html_links_for_offline(html: &str, url_to_local_rel_path: &[(String, String)]) -> String {
     let mut out = html.to_string();
     for (remote_url, local_rel) in url_to_local_rel_path {
-        out = out.replace(&format!("href="{}"", remote_url), &format!("href="{}"", local_rel));
-        out = out.replace(&format!("src="{}"", remote_url), &format!("src="{}"", local_rel));
+        out = out.replace(&format!("href=\"{}\"",remote_url), &format!("href=\"{}\"",local_rel));
+        out = out.replace(&format!("src=\"{}\"",remote_url), &format!("src=\"{}\"",local_rel));
     }
     out
 }

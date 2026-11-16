@@ -100,7 +100,7 @@ pub fn parse_hls_manifest(base_url: &str, content: &str) -> Result<ParsedStreamM
         }
         if line.starts_with("#EXT-X-KEY:") {
             let upper = line.to_ascii_uppercase();
-            if upper.contains("KEYFORMAT="URN:UUID:EDEF8BA9")
+            if upper.contains("KEYFORMAT=\"URN:UUID:EDEF8BA9")
                 || upper.contains("SAMPLE-AES-CTR")
                 || upper.contains("COM.APPLE.STREAMINGKEYDELIVERY")
                 || upper.contains("PLAYREADY")
@@ -197,7 +197,7 @@ pub fn parse_dash_manifest(base_url: &str, content: &str) -> Result<ParsedStream
 }
 
 fn extract_quoted_attr(line: &str, key: &str) -> Option<String> {
-    let pat = format!("{}="", key);
+    let pat = format!("{}=\"", key);
     let start = line.find(&pat)? + pat.len();
     let end = line[start..].find('"')? + start;
     Some(line[start..end].to_string())
