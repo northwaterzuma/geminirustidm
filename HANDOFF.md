@@ -3,12 +3,12 @@
 ```yaml
 project: RustCatch
 spec_version: "1.0"
-updated_at_utc: "2026-11-16T10:30:40Z"
+updated_at_utc: "2026-11-16T11:27:00Z"
 task_id: P0-T02 / P1-T01 (build unblock + real Rust tests)
 status: launch_build_verified_needs_env_for_runtime_acceptance
 repo_path: https://github.com/northwaterzuma/rustcatch (branch rustcatch/dev-v1; local clone C:/Users/admin/WorkBuddy/2026-11-16-01-42-58/rustcatch)
 branch: rustcatch/dev-v1
-commit: fc120a782adc24257f5a83f9f298c0bdbe05b844
+commit: 56d638b2ca5de89b470b17c89fd4f350281bee77
 upstream_base: 605a0c74e50361afe77bf1721d7172636bd5c57e
 worktree_status: clean at commit
 changed_files:
@@ -23,7 +23,8 @@ changed_files:
   - Cargo.lock
 requirements: [REQ-02, REQ-03, REQ-06, REQ-07, REQ-08, REQ-11]
 tests_run:
-  - "GitHub Actions run 43848343635 / commit fc120a7: ALL 4 jobs SUCCESS (latest verified)"
+  - "GitHub Actions run 43856090950 / commit 56d638b: ALL 4 jobs SUCCESS (latest verified, includes CJK font fix)"
+  - "GitHub Actions run 43848343635 / commit fc120a7: ALL 4 jobs SUCCESS"
   - "cargo test --workspace on windows-latest (msvc), ubuntu-latest, macos-latest: 54 passed, 0 failed on each"
   - "cargo build --release --workspace on all 3 targets: SUCCESS"
   - "cargo +stable check --workspace --all-targets local: PASS"
@@ -101,6 +102,19 @@ GitHub Actions run 43845781548（commit 40167f3）全部 4 个 job success：
 
 ## 最新构建门槛（覆盖上方历史数字）
 
-GitHub Actions run 43848343635（commit fc120a7）全部 4 个 job success，单平台 **54 passed / 0 failed**，
-三平台 cargo check / test / build --release 均完成并上传产物。证据：`evidence/CI-fc120a7/RESULTS.md`。
-上方出现的 35 / 45 为历史提交当时的通过数，以本段 54 为准。仍非真机验收，needs_env 项不变。
+GitHub Actions run 43856090950（commit 56d638b）全部 4 个 job success，三平台 cargo check / test /
+build --release 均完成。证据：GitHub Actions run 页面。上一个稳定基线为 run 43848343635（fc120a7），
+单平台 54 passed / 0 failed，见 `evidence/CI-fc120a7/RESULTS.md`。上方出现的 35 / 45 为历史通过数。
+
+## 中文乱码修复 + v0.1.0 重新发布（2026-11-16）
+
+- 根因：egui 0.29 默认字体（ProggyClean/Hack）不含 CJK 字形，菜单/状态栏中文渲染成豆腐块/乱码。
+- 修复：新增 `crates/app/src/fonts.rs`，用 `include_bytes!` 内嵌 Noto Sans SC（OFL-1.1）GB2312 常用字子集
+  （`assets/fonts/NotoSansSC-subset.ttf`，2.1MB，静态 wght=400），注册为 Proportional/Monospace 首选字体，
+  在 `main.rs` 的 eframe 启动回调里调用 `install_chinese_font`。许可证见 `assets/fonts/OFL.txt`，
+  归属已写入 `THIRD_PARTY_NOTICES` 第 6 节。
+- 发布：删除 v0.1.0 旧 zip 资产 → 将 tag 从 e0a3b37 强推到 56d638b → 重跑 release 工作流
+  （run 43857210839 success，重复的 dispatch run 43857233125 已取消）。
+- 新包：`rustcatch-win64-portable-unsigned-test.zip`，4.5MB，SHA-256 `684d3ce7…e11ff0`，
+  含 4 个 exe + 扩展包。已下载解包验证 `rustcatch.exe` 中确实内嵌字体字节（偏移 2547696）。
+- 仍需真机目视确认菜单中文显示正常（本机为离线 Windows 无 C linker，无法本地启动 GUI）。
