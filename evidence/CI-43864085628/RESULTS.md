@@ -36,3 +36,11 @@ Windows job 的 `Run Rust Workspace Unit & Integration Tests` 步骤实测汇总
 ## 证据边界
 
 该 CI 只证明代码可编译、格式/Clippy 检查通过、58 项自动化测试和契约套件通过。它**不**等于 Windows GUI 真机点击验收通过；GUI 真机、浏览器真机、授权 YouTube 在线样本等门槛继续保持 `needs_env`。
+
+## 后续发布
+
+- 文档提交 CI：`43865245516`，4/4 jobs success。
+- 预发布标签：`v0.1.1-ui-fix`（指向 `d12ad26`）。
+- Release workflow：`43866171544`，success。
+- Windows 便携包 SHA-256：`831df8497d4efaaf4d40c7e2246a38601be347c953ffd88185b624f9dbb5fd74`。
+- Release 页：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.1-ui-fix

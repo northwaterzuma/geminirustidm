@@ -152,3 +152,6 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - 本机 `cargo test` 仍因缺少 `dlltool.exe` 无法链接测试二进制；真实测试放 GitHub Actions。
 - `wbhy4falshv1/main` CI run **43864085628**：4/4 jobs success；Windows job **58 passed / 0 failed**，其中新增 UI 测试 **4 passed / 0 failed**。证据：`evidence/CI-43864085628/RESULTS.md`。
 - 该结果证明编译、格式、Clippy、58 项自动化测试和契约套件通过；**不等于** GUI 真机点击验收通过。用户截图所指具体窗口仍需在新版二进制上真机确认，GUI 真机继续记为 `needs_env`。
+- 文档提交 `d12ad26` 的 CI run 43865245516 同样 4/4 jobs success。
+- 为便于直接验证修复版本，基于 `d12ad26` 新建预发布标签 `v0.1.1-ui-fix`；Release 工作流 run 43866171544 success。
+- 新 Windows 便携包：`rustcatch-win64-portable-unsigned-test.zip`，SHA-256 `831df8497d4efaaf4d40c7e2246a38601be347c953ffd88185b624f9dbb5fd74`，地址：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.1-ui-fix
