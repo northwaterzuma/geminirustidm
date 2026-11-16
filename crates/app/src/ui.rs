@@ -1,7 +1,14 @@
 //! IDM Classic Light UI View-Model and egui/eframe Window Bindings (UI-01 .. UI-12).
 
 use crate::task_coordinator::TaskCoordinator;
-use mdm_ipc::{CallerOriginKind, CallerScope, CapabilityScope, ControlOp, TaskSnapshot, TaskState};
+use mdm_ipc::{
+    CallerOriginKind, CallerScope, CapabilityScope, CollisionPolicy, ControlOp, DirectoryPolicy,
+    MediaIntent, MediaKind, MediaPreset, OutputPolicy, ResponseStatus, SourceSpec, SubtitlePolicy,
+    TaskSnapshot, TaskState, sanitize_file_name,
+};
+use mdm_tools::video::extract_youtube_identity;
+use std::time::{SystemTime, UNIX_EPOCH};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IdmWindowId {
@@ -17,6 +24,34 @@ pub enum IdmWindowId {
     Ui10BatchGrabberWizard,
     Ui11RecoveryDiagnostics,
     Ui12DesktopTrayBasket,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UiDialog {
+    AddUrl,
+    DownloadInfo,
+    Options,
+    QueueScheduler,
+    SiteGrabber,
+    About,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AppAction {
+    OpenAddUrl,
+    OpenDownloadInfo,
+    StartQueue,
+    StopQueue,
+    ResumeSelected,
+    StopSelected,
+    RemoveSelected,
+    DeleteSelectedFiles,
+    OpenOptions,
+    OpenScheduler,
+    OpenGrabber,
+    OpenAbout,
+    CloseDialog,
+    SelectCategory(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,12 +70,18 @@ pub struct ToolbarButtonStates {
 
 /// Computes IDM classic toolbar button enable/disable states based on current selection.
 pub fn compute_toolbar_states(selected: &[TaskSnapshot], any_running: bool) -> ToolbarButtonStates {
-    let can_resume = selected
-        .iter()
-        .any(|t| matches!(t.state, TaskState::Paused | TaskState::Failed | TaskState::Queued));
-    let can_stop = selected
-        .iter()
-        .any(|t| matches!(t.state, TaskState::Running | TaskState::Resolving | TaskState::Finishing));
+    let can_resume = selected.iter().any(|t| {
+        matches!(
+            t.state,
+            TaskState::Paused | TaskState::Failed | TaskState::Queued
+        )
+    });
+    let can_stop = selected.iter().any(|t| {
+        matches!(
+            t.state,
+            TaskState::Running | TaskState::Resolving | TaskState::Finishing
+        )
+    });
     let can_delete_record = !selected.is_empty();
 
     ToolbarButtonStates {
@@ -64,6 +105,19 @@ pub struct RustCatchDesktopApp {
     pub add_url_input: String,
     pub close_to_tray: bool,
     pub status_message: String,
+    pub open_dialog: Option<UiDialog>,
+    pub pending_task_id: Option<String>,
+    pub pending_url: String,
+    pub pending_file_name: String,
+    pub pending_directory: String,
+    pub pending_category: String,
+    pub pending_queue_id: String,
+    pub pending_media_id: Option<String>,
+    pub pending_start_now: bool,
+    pub dialog_error: Option<String>,
+    pub queue_running: bool,
+    pub add_url_history: Vec<String>,
+    pub last_task_id: Option<String>,
 }
 
 impl Default for RustCatchDesktopApp {
@@ -75,7 +129,70 @@ impl Default for RustCatchDesktopApp {
             add_url_input: String::new(),
             close_to_tray: true,
             status_message: "就绪 (Ready) | 全局速度: 0 B/s".to_string(),
+            open_dialog: None,
+            pending_task_id: None,
+            pending_url: String::new(),
+            pending_file_name: String::new(),
+            pending_directory: String::new(),
+            pending_category: "视频 (Video)".to_string(),
+            pending_queue_id: "main".to_string(),
+            pending_media_id: None,
+            pending_start_now: true,
+            dialog_error: None,
+            queue_running: false,
+            add_url_history: Vec::new(),
+            last_task_id: None,
         }
+    }
+}
+
+fn now_epoch_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
+}
+
+fn safe_file_stem(raw: &str) -> String {
+    let cleaned: String = raw
+        .trim()
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let cleaned = cleaned.trim_matches(|c| c == '.' || c == '_');
+    if cleaned.is_empty() {
+        "download".to_string()
+    } else {
+        cleaned.to_string()
+    }
+}
+
+fn default_media_intent() -> MediaIntent {
+    MediaIntent {
+        version: 1,
+        kind: MediaKind::VideoAudio,
+        preset: MediaPreset::HighestQuality,
+        max_height: None,
+        codec_preference: vec!["av1".into(), "vp9".into(), "h264".into()],
+        container: "auto".into(),
+        hdr: "preserve".into(),
+        audio_language: "original".into(),
+        subtitles: SubtitlePolicy {
+            languages: vec![],
+            source: "manual_preferred".into(),
+            mode: "sidecar".into(),
+            required: false,
+        },
+        allow_quality_downgrade: false,
+        allow_transcode: false,
+        require_exact_format: false,
+        selected_format_ids: vec![],
     }
 }
 
@@ -98,20 +215,372 @@ impl RustCatchDesktopApp {
         }
     }
 
+    /// Validates the address bar and opens the UI-03 download-info dialog.
+    /// No task is created before the user confirms the download info.
+    pub fn prepare_add_url(&mut self, raw_url: &str) -> bool {
+        let trimmed = raw_url.trim();
+        self.dialog_error = None;
+        if trimmed.is_empty() {
+            self.dialog_error = Some("请输入 HTTP/HTTPS 直链或视频页面地址".to_string());
+            return false;
+        }
+        let parsed = match url::Url::parse(trimmed) {
+            Ok(parsed) => parsed,
+            Err(_) => {
+                self.dialog_error = Some(format!("地址格式无效: {}", trimmed));
+                return false;
+            }
+        };
+        if !matches!(parsed.scheme(), "http" | "https") {
+            self.dialog_error = Some(format!(
+                "不支持的协议: {}（仅支持 http/https）",
+                parsed.scheme()
+            ));
+            return false;
+        }
+
+        let identity = extract_youtube_identity(trimmed);
+        let file_name = if let Some((_, media_id)) = &identity {
+            format!("youtube_{}.mp4", safe_file_stem(media_id))
+        } else {
+            let last_segment = parsed
+                .path_segments()
+                .and_then(|segments| segments.last().map(str::to_string))
+                .filter(|segment| !segment.is_empty())
+                .unwrap_or_else(|| "download.bin".to_string());
+            let stem = safe_file_stem(&last_segment);
+            if stem.contains('.') {
+                stem
+            } else {
+                format!("{}.bin", stem)
+            }
+        };
+        if let Err(err) = sanitize_file_name(&file_name) {
+            self.dialog_error = Some(format!("{:?}: {}", err.code, err.message));
+            return false;
+        }
+
+        self.add_url_input = trimmed.to_string();
+        self.pending_task_id = None;
+        self.pending_url = trimmed.to_string();
+        self.pending_file_name = file_name;
+        self.pending_directory = String::new();
+        self.pending_category = if identity.is_some() {
+            "视频 (Video)".to_string()
+        } else {
+            "所有下载 (All Downloads)".to_string()
+        };
+        self.pending_queue_id = "main".to_string();
+        self.pending_media_id = identity.map(|(_, media_id)| media_id);
+        self.pending_start_now = true;
+        self.open_dialog = Some(UiDialog::DownloadInfo);
+        self.status_message = format!("地址已解析，等待确认: {}", trimmed);
+        true
+    }
+
+    /// Confirms the download-info dialog. Creates a new task, or saves edits to an existing task.
+    pub fn confirm_pending_download(&mut self) -> bool {
+        self.dialog_error = None;
+        if self.pending_url.trim().is_empty() && self.pending_task_id.is_none() {
+            self.dialog_error = Some("下载地址为空，无法创建任务".to_string());
+            return false;
+        }
+        if let Err(err) = sanitize_file_name(&self.pending_file_name) {
+            self.dialog_error = Some(format!("{:?}: {}", err.code, err.message));
+            return false;
+        }
+        let directory_ref = if self.pending_directory.trim().is_empty() {
+            None
+        } else {
+            Some(self.pending_directory.trim().to_string())
+        };
+
+        if let Some(task_id) = self.pending_task_id.clone() {
+            let Some(task) = self.coordinator.tasks.get_mut(&task_id) else {
+                self.dialog_error = Some(format!("任务不存在: {}", task_id));
+                return false;
+            };
+            task.output.file_name_hint = self.pending_file_name.clone();
+            task.output.directory_ref = directory_ref;
+            task.output.queue_id = Some(self.pending_queue_id.clone());
+            task.revision += 1;
+            self.status_message = format!("下载信息已保存: {}", task_id);
+            self.open_dialog = None;
+            return true;
+        }
+
+        let source = SourceSpec::PageUrl {
+            url: self.pending_url.clone(),
+            page_url: Some(self.pending_url.clone()),
+            platform_media_id: self.pending_media_id.clone(),
+        };
+        let output = OutputPolicy {
+            directory_policy: if directory_ref.is_some() {
+                DirectoryPolicy::UserSelected
+            } else {
+                DirectoryPolicy::CategoryDefault
+            },
+            file_name_hint: self.pending_file_name.clone(),
+            directory_ref,
+            queue_id: Some(self.pending_queue_id.clone()),
+            collision: CollisionPolicy::Rename,
+        };
+        let media_intent = self
+            .pending_media_id
+            .as_ref()
+            .map(|_| default_media_intent());
+        let caller = Self::ui_caller();
+        let request_id = format!("ui-add-{}", Uuid::new_v4());
+        let idempotency_key = format!("ui-add-url:{}", request_id);
+        let response = self.coordinator.add_task(
+            &caller,
+            &request_id,
+            &idempotency_key,
+            &source,
+            output,
+            None,
+            "default".to_string(),
+            media_intent,
+        );
+        if let Some(err) = response.error {
+            self.dialog_error = Some(format!("{:?}: {}", err.code, err.message));
+            return false;
+        }
+        let task_id = response.task_id.unwrap_or_default();
+        self.selected_task_ids = vec![task_id.clone()];
+        self.last_task_id = Some(task_id.clone());
+        if !self.add_url_history.contains(&self.pending_url) {
+            self.add_url_history.push(self.pending_url.clone());
+            if self.add_url_history.len() > 20 {
+                self.add_url_history.remove(0);
+            }
+        }
+
+        if self.pending_start_now {
+            let rev = self
+                .coordinator
+                .tasks
+                .get(&task_id)
+                .map(|task| task.revision)
+                .unwrap_or(1);
+            let request_id = format!("ui-start-{}", Uuid::new_v4());
+            let _ = self.coordinator.control_task(
+                &caller,
+                &request_id,
+                &task_id,
+                rev,
+                ControlOp::Resume,
+                now_epoch_ms(),
+            );
+            self.queue_running = true;
+            self.status_message = format!(
+                "任务已加入队列并置为运行态: {} | {}",
+                task_id, self.pending_file_name
+            );
+        } else {
+            self.status_message =
+                format!("任务已加入队列: {} | {}", task_id, self.pending_file_name);
+        }
+        self.open_dialog = None;
+        true
+    }
+
+    pub fn open_download_info_for_selected(&mut self) {
+        let task_id = self
+            .selected_task_ids
+            .first()
+            .cloned()
+            .or_else(|| self.last_task_id.clone());
+        let Some(task_id) = task_id else {
+            self.status_message = "请先选择一个任务，再打开下载信息".to_string();
+            return;
+        };
+        let Some(task) = self.coordinator.tasks.get(&task_id) else {
+            self.status_message = format!("任务不存在: {}", task_id);
+            return;
+        };
+        self.pending_task_id = Some(task_id.clone());
+        self.pending_url = task.source_display.clone();
+        self.pending_file_name = task.output.file_name_hint.clone();
+        self.pending_directory = task.output.directory_ref.clone().unwrap_or_default();
+        self.pending_queue_id = task
+            .output
+            .queue_id
+            .clone()
+            .unwrap_or_else(|| "main".to_string());
+        self.pending_media_id = task.media_intent.as_ref().map(|_| task.task_id.clone());
+        self.pending_start_now = false;
+        self.dialog_error = None;
+        self.open_dialog = Some(UiDialog::DownloadInfo);
+        self.status_message = format!("已打开下载信息: {}", task_id);
+    }
+
+    pub fn control_selected(&mut self, op: ControlOp, label: &str) {
+        if self.selected_task_ids.is_empty() {
+            self.status_message = format!("请先选择任务，再执行“{}”", label);
+            return;
+        }
+        if op == ControlOp::RemoveRecord {
+            self.handle_delete_key(false, now_epoch_ms());
+            return;
+        }
+        let caller = Self::ui_caller();
+        let now = now_epoch_ms();
+        let ids = self.selected_task_ids.clone();
+        let mut changed = 0usize;
+        for id in ids {
+            let Some(rev) = self.coordinator.tasks.get(&id).map(|task| task.revision) else {
+                continue;
+            };
+            let request_id = format!("ui-{}-{}", label, Uuid::new_v4());
+            let response = self
+                .coordinator
+                .control_task(&caller, &request_id, &id, rev, op, now);
+            if response.status != ResponseStatus::Error {
+                changed += 1;
+            }
+        }
+        self.status_message = format!("{}: {} 个任务状态已更新", label, changed);
+    }
+
+    pub fn set_queue_running(&mut self, running: bool) {
+        let caller = Self::ui_caller();
+        let now = now_epoch_ms();
+        let ids: Vec<String> = self
+            .coordinator
+            .tasks
+            .values()
+            .filter(|task| {
+                if running {
+                    task.state == TaskState::Queued
+                } else {
+                    matches!(
+                        task.state,
+                        TaskState::Running | TaskState::Resolving | TaskState::Finishing
+                    )
+                }
+            })
+            .map(|task| task.task_id.clone())
+            .collect();
+        let op = if running {
+            ControlOp::Resume
+        } else {
+            ControlOp::Pause
+        };
+        let mut changed = 0usize;
+        for id in ids {
+            let Some(rev) = self.coordinator.tasks.get(&id).map(|task| task.revision) else {
+                continue;
+            };
+            let request_id = format!("ui-queue-{}-{}", running, Uuid::new_v4());
+            let response = self
+                .coordinator
+                .control_task(&caller, &request_id, &id, rev, op, now);
+            if response.status != ResponseStatus::Error {
+                changed += 1;
+            }
+        }
+        self.queue_running = running;
+        self.status_message = format!(
+            "{}: {} 个任务状态已更新",
+            if running {
+                "开始队列"
+            } else {
+                "停止队列"
+            },
+            changed
+        );
+    }
+
     /// Keyboard Delete triggers `RemoveRecord` only (never `DeleteFiles` unless explicitly confirmed with Shift+Delete).
     pub fn handle_delete_key(&mut self, shift_delete_files: bool, now_epoch_ms: u64) {
         let caller = Self::ui_caller();
         let ids = self.selected_task_ids.clone();
+        let mut removed = 0usize;
         for id in ids {
             if let Some(rec) = self.coordinator.tasks.get(&id) {
                 let rev = rec.revision;
                 if shift_delete_files {
-                    let _ = self.coordinator.control_task(&caller, "ui-del-files", &id, rev, ControlOp::DeleteFiles, now_epoch_ms);
+                    let _ = self.coordinator.control_task(
+                        &caller,
+                        "ui-del-files",
+                        &id,
+                        rev,
+                        ControlOp::DeleteFiles,
+                        now_epoch_ms,
+                    );
                 }
-                let next_rev = self.coordinator.tasks.get(&id).map(|r| r.revision).unwrap_or(rev);
-                let _ = self.coordinator.control_task(&caller, "ui-rm-rec", &id, next_rev, ControlOp::RemoveRecord, now_epoch_ms);
+                let next_rev = self
+                    .coordinator
+                    .tasks
+                    .get(&id)
+                    .map(|r| r.revision)
+                    .unwrap_or(rev);
+                let response = self.coordinator.control_task(
+                    &caller,
+                    "ui-rm-rec",
+                    &id,
+                    next_rev,
+                    ControlOp::RemoveRecord,
+                    now_epoch_ms,
+                );
+                if response.status != ResponseStatus::Error {
+                    removed += 1;
+                }
             }
         }
         self.selected_task_ids.clear();
+        if self
+            .last_task_id
+            .as_deref()
+            .map(|id| !self.coordinator.tasks.contains_key(id))
+            .unwrap_or(false)
+        {
+            self.last_task_id = None;
+        }
+        self.status_message = format!("已移除 {} 条任务记录（未删除下载文件）", removed);
+    }
+
+    pub fn apply_action(&mut self, action: AppAction) {
+        match action {
+            AppAction::OpenAddUrl => {
+                self.dialog_error = None;
+                self.open_dialog = Some(UiDialog::AddUrl);
+                self.status_message = "已打开“添加地址”窗口".to_string();
+            }
+            AppAction::OpenDownloadInfo => self.open_download_info_for_selected(),
+            AppAction::StartQueue => self.set_queue_running(true),
+            AppAction::StopQueue => self.set_queue_running(false),
+            AppAction::ResumeSelected => self.control_selected(ControlOp::Resume, "恢复"),
+            AppAction::StopSelected => self.control_selected(ControlOp::Pause, "停止"),
+            AppAction::RemoveSelected => self.control_selected(ControlOp::RemoveRecord, "移除记录"),
+            AppAction::DeleteSelectedFiles => {
+                self.status_message = "删除文件需要显式二次确认；此入口不直接删除文件".to_string();
+            }
+            AppAction::OpenOptions => {
+                self.open_dialog = Some(UiDialog::Options);
+                self.status_message = "已打开“选项”窗口".to_string();
+            }
+            AppAction::OpenScheduler => {
+                self.open_dialog = Some(UiDialog::QueueScheduler);
+                self.status_message = "已打开“计划任务/队列”窗口".to_string();
+            }
+            AppAction::OpenGrabber => {
+                self.open_dialog = Some(UiDialog::SiteGrabber);
+                self.status_message = "已打开“站点抓取”窗口".to_string();
+            }
+            AppAction::OpenAbout => {
+                self.open_dialog = Some(UiDialog::About);
+                self.status_message = "已打开“关于”窗口".to_string();
+            }
+            AppAction::CloseDialog => {
+                self.open_dialog = None;
+                self.dialog_error = None;
+            }
+            AppAction::SelectCategory(category) => {
+                self.selected_category = category.clone();
+                self.status_message = format!("当前分类: {}", category);
+            }
+        }
     }
 }
