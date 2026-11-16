@@ -176,3 +176,4 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - 若要真正下载，下一步必须在 GitHub Actions 发布流程里解析并核验官方组件、写入 `COMPONENT_LOCK.json` 并随包分发，或由用户显式配置“用户提供的工具路径”；不能伪造 SHA-256 或直接调用系统 PATH 里的 yt-dlp。
 - 本地 `cargo +stable check --workspace --all-targets` 通过。
 - `wbhy4falshv1/main` CI run **43870407465**：4/4 jobs success；Windows job **60 passed / 0 failed**（新增 runner 测试 1 项、UI 测试 5 项）。证据：`evidence/CI-43870407465/RESULTS.md`。
+- 诊断版预发布标签 `v0.1.2-diagnostics`（指向 `14412c9`）；Release workflow run **43871553149** success。Windows 便携包 SHA-256 `2ac4f7ec81ee742b937461c99e3318531d87ceb46a3f4c91bc4bafabaaec864e`，地址：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.2-diagnostics

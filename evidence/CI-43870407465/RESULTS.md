@@ -31,3 +31,10 @@ Windows job 的 `Run Rust Workspace Unit & Integration Tests` 步骤实测汇总
 - 已接入后台 worker、`WorkerEvent`、任务日志窗口和失败状态写回。
 - 因 `COMPONENT_LOCK.json` 仍为 `unresolved_do_not_execute`，当前新包会明确显示 `Failed / ToolUnavailable` 和对应日志，**不会真正下载**。
 - 这是诊断能力落地，不是在线 YouTube 下载验收通过。组件解析/核验和真实在线样本仍为 needs_env。
+
+## 发布
+
+- 预发布标签：`v0.1.2-diagnostics`，指向 `14412c9`。
+- Release workflow：`43871553149`，success。
+- Windows 便携包 SHA-256：`2ac4f7ec81ee742b937461c99e3318531d87ceb46a3f4c91bc4bafabaaec864e`。
+- Release 页：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.2-diagnostics
