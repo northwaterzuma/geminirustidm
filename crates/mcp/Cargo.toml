@@ -1,0 +1,16 @@
+[package]
+name = "rustcatch-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "rustcatch-mcp"
+path = "src/main.rs"
+
+[dependencies]
+mdm-ipc.workspace = true
+mdm-app.workspace = true
+serde.workspace = true
+serde_json.workspace = true

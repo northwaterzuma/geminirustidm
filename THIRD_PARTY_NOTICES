@@ -1,0 +1,32 @@
+# RustCatch Third-Party Notices & Attribution
+
+RustCatch is distributed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)**.
+
+## 1. Mister Download Manager (Development Base)
+- Repository: https://github.com/anefzaoui/misterdownloadmanager
+- Locked Commit: `605a0c74e50361afe77bf1721d7172636bd5c57e` (v0.5.2)
+- License: GPL-3.0-or-later
+- Role: Workspace structure, desktop download engine, queue, Native Messaging, and MCP architecture base.
+
+## 2. Cat-Catch / 猫抓 (Browser Media Sniffer Integration)
+- Repository: https://github.com/xifangczy/cat-catch
+- Locked Commit: `7529f1e6c63c2e1b2e5d4baf5cd0577b8eb4aaba`
+- License: GPL-3.0
+- Role: External `getData(tabId)` API compatibility and media MIME/manifest sniffer rules.
+
+## 3. Arroxy (Media Intent & yt-dlp Error Classification)
+- Repository: https://github.com/antonio-orionus/Arroxy
+- Locked Commit: `6df64a067f063c53a25c8deaca02e1345ffb1f87`
+- Subpackages `packages/yt-dlp-bridge` and `packages/ytdlp-errors`: MIT License (Copyright (c) Arroxy Authors).
+- Main Application Reference (`mediaIntent`, `autoRetry`, `cookiesResolver`): GPL-3.0-or-later.
+
+## 4. FluxDown (Reference Only — No AGPL Code Bundled)
+- Repository: https://github.com/zerx-lab/FluxDown
+- Locked Commit: `9a5b0d7d5b754c27c2853dd0434494695db18e8d`
+- License: AGPL-3.0 (referenced for architectural boundaries only; no AGPL source code is copied into RustCatch).
+
+## 5. External Controlled Runtime Components
+- `yt-dlp`: Unlicense (https://github.com/yt-dlp/yt-dlp)
+- `yt-dlp-ejs`: Unlicense AND ISC AND MIT (https://github.com/yt-dlp/yt-dlp/wiki/EJS)
+- `Deno`: MIT License (https://github.com/denoland/deno)
+- `FFmpeg` / `ffprobe`: LGPL-2.1-or-later / GPL-3.0-or-later depending on target platform binary build configuration (`ffmpeg -buildconf`).

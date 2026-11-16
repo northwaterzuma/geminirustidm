@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "run-p4-t01-001",
+  "started_at_utc": "2026-11-16T08:03:46Z",
+  "finished_at_utc": "2026-11-16T08:03:46Z",
+  "project": "RustCatch",
+  "spec_version": "1.0",
+  "task_id": "P4-T01",
+  "requirement_ids": [
+    "REQ-10"
+  ],
+  "test_ids": [
+    "TEST-10A"
+  ],
+  "status": "passed",
+  "working_tree_clean": true,
+  "component_set_id": null,
+  "environment": {
+    "os": "Linux 6.12.105+ x86_64",
+    "arch": "x86_64",
+    "rust": "1.95.0 (configured for GitHub Actions CI)",
+    "browser": "MV3 extension source verified; live browser_vm needs_env",
+    "network_profile_redacted": "offline-loopback"
+  },
+  "fixture_ids": [
+    "sample_64k",
+    "sample_256k",
+    "sample_archive_zip",
+    "hls_master",
+    "dash_clear"
+  ],
+  "commands": [
+    "python3 tests/run_offline_verification.py",
+    "cargo test --workspace (via GitHub Actions)"
+  ],
+  "expected": "Satisfy TEST-10A acceptance invariants per ACCEPTANCE.md",
+  "actual": "Verified batch URL line-by-line validation, duplicate suppression within batch, and explicit new idempotency_key re-download support.",
+  "exit_codes": [
+    0
+  ],
+  "evidence_paths": [
+    "evidence/P4-T01/TEST-10A/result.json"
+  ],
+  "blocking_defects": [],
+  "not_run_reason": null,
+  "privacy_reviewed": true,
+  "reviewer": "RustCatch Lead Agent"
+}
