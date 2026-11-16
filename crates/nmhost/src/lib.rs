@@ -10,6 +10,7 @@ pub struct NativeHostSession {
     pub allowed_extension_origins: Vec<String>,
     pub caller_origin: String,
     pub authenticated_session: Option<(String, String)>, // (instance_id, session_ref)
+    pub session_profile_id: Option<String>, // profile_id bound at first authenticated data op
     pub enrolled_secrets: BTreeMap<String, Vec<u8>>,
     pub active_challenges: BTreeMap<String, (String, String, u64)>, // challenge_id -> (instance_id, nonce, expires_at_ms)
     pub coordinator: TaskCoordinator,
@@ -22,6 +23,7 @@ impl NativeHostSession {
             allowed_extension_origins,
             caller_origin,
             authenticated_session: None,
+            session_profile_id: None,
             enrolled_secrets: BTreeMap::new(),
             active_challenges: BTreeMap::new(),
             coordinator: TaskCoordinator::new(),
@@ -87,7 +89,7 @@ impl NativeHostSession {
         }
 
         // All non-hello operations require an authenticated session on this connection
-        let Some((authed_instance_id, _)) = &self.authenticated_session else {
+        let Some((authed_instance_id, authed_session_ref)) = &self.authenticated_session else {
             return BrowserBridgeResponse::error(
                 req.request_id,
                 ErrorCode::PermissionDenied,
@@ -97,6 +99,28 @@ impl NativeHostSession {
             );
         };
         let authed_instance_id = authed_instance_id.clone();
+        let authed_session_ref = authed_session_ref.clone();
+        // Profile id is bound to this authenticated session on the first data op
+        // and never changed afterwards. Page payload alone cannot switch profiles.
+        let requested_profile = req.payload["browser"]["profile_id"].as_str().unwrap_or("").to_string();
+        let authed_profile_id = if let Some(bound) = &self.session_profile_id {
+            if !requested_profile.is_empty() && requested_profile != *bound {
+                return BrowserBridgeResponse::error(
+                    &req.request_id,
+                    ErrorCode::PermissionDenied,
+                    "profile_id differs from the profile bound to this authenticated session",
+                    false,
+                    None,
+                );
+            }
+            bound.clone()
+        } else if !requested_profile.is_empty() {
+            self.session_profile_id = Some(requested_profile.clone());
+            requested_profile
+        } else {
+            // Fallback for ops that carry no browser block (task.add/handoff.status).
+            format!("profile-{}", authed_session_ref)
+        };
 
         match req.op.as_str() {
             "capture.publish" => {
@@ -166,7 +190,123 @@ impl NativeHostSession {
                     error: None,
                 }
             }
+            "handoff.prepare" => {
+                let browser: BrowserMeta = match serde_json::from_value(req.payload["browser"].clone()) {
+                    Ok(v) => v,
+                    Err(e) => return BrowserBridgeResponse::error(&req.request_id, ErrorCode::InvalidRequest, format!("Invalid browser: {}", e), false, None),
+                };
+                if browser.installation_id != authed_instance_id {
+                    return BrowserBridgeResponse::error(&req.request_id, ErrorCode::PermissionDenied, "installation_id mismatch", false, None);
+                }
+                let source: SourceSpec = match serde_json::from_value(req.payload["source"].clone()) {
+                    Ok(v) => v,
+                    Err(e) => return BrowserBridgeResponse::error(&req.request_id, ErrorCode::InvalidRequest, format!("Invalid source: {}", e), false, None),
+                };
+                let output: OutputPolicy = match serde_json::from_value(req.payload["output"].clone()) {
+                    Ok(v) => v,
+                    Err(e) => return BrowserBridgeResponse::error(&req.request_id, ErrorCode::InvalidRequest, format!("Invalid output: {}", e), false, None),
+                };
+                let context_ref = req.payload["context_ref"].as_str().map(str::to_string);
+                let network_profile_id = req.payload["network_profile_id"].as_str().unwrap_or("system-default").to_string();
+                let media_intent: Option<MediaIntent> = serde_json::from_value(req.payload["media_intent"].clone()).ok();
+                let caller = self.bridge_caller(&authed_instance_id, &authed_profile_id);
+                self.coordinator.prepare_handoff(&caller, &req.request_id, &req.idempotency_key,
+                    &browser, &source, output, context_ref, network_profile_id, media_intent, now_epoch_ms)
+            }
+            "handoff.commit" => {
+                let task_id = req.payload["task_id"].as_str().unwrap_or_default().to_string();
+                let expected_revision = req.payload["expected_revision"].as_str()
+                    .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                let token = req.payload["handoff_token"].as_str().unwrap_or_default().to_string();
+                let dl_id = req.payload["browser_download_id"].as_str()
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .or_else(|| req.payload["browser_download_id"].as_u64()).unwrap_or(0);
+                // Only a trusted native-extension caller may assert browser cancellation.
+                let cancelled = req.payload["browser_cancel_confirmed"].as_bool().unwrap_or(false);
+                let caller = self.bridge_caller(&authed_instance_id, &authed_profile_id);
+                self.coordinator.commit_handoff(&caller, &req.request_id, &req.idempotency_key,
+                    &task_id, expected_revision, &token, dl_id, cancelled, now_epoch_ms)
+            }
+            "handoff.status" => {
+                let caller = self.bridge_caller(&authed_instance_id, &authed_profile_id);
+                self.coordinator.query_handoff_status(&caller, &req.request_id, &req.idempotency_key)
+            }
+            "handoff.abort" => {
+                let task_id = req.payload["task_id"].as_str().unwrap_or_default().to_string();
+                let expected_revision = req.payload["expected_revision"].as_str()
+                    .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                let token = req.payload["handoff_token"].as_str().unwrap_or_default().to_string();
+                let caller = self.bridge_caller(&authed_instance_id, &authed_profile_id);
+                self.coordinator.abort_handoff(&caller, &req.request_id, &req.idempotency_key,
+                    &task_id, expected_revision, &token, now_epoch_ms)
+            }
+            "task.add" => {
+                let source: SourceSpec = match serde_json::from_value(req.payload["source"].clone()) {
+                    Ok(v) => v,
+                    Err(e) => return BrowserBridgeResponse::error(&req.request_id, ErrorCode::InvalidRequest, format!("Invalid source: {}", e), false, None),
+                };
+                let output: OutputPolicy = match serde_json::from_value(req.payload["output"].clone()) {
+                    Ok(v) => v,
+                    Err(e) => return BrowserBridgeResponse::error(&req.request_id, ErrorCode::InvalidRequest, format!("Invalid output: {}", e), false, None),
+                };
+                let context_ref = req.payload["context_ref"].as_str().map(str::to_string);
+                let network_profile_id = req.payload["network_profile_id"].as_str().unwrap_or("system-default").to_string();
+                let media_intent: Option<MediaIntent> = serde_json::from_value(req.payload["media_intent"].clone()).ok();
+                let caller = self.bridge_caller(&authed_instance_id, &authed_profile_id);
+                self.coordinator.add_task(&caller, &req.request_id, &req.idempotency_key,
+                    &source, output, context_ref, network_profile_id, media_intent)
+            }
+            "task.get" => {
+                let task_id = req.payload["task_id"].as_str().unwrap_or_default();
+                let caller = self.bridge_caller(&authed_instance_id, &authed_profile_id);
+                match self.coordinator.tasks.get(task_id) {
+                    Some(task) if task.caller_key == format!("{}:{}:{}", caller.os_user, caller.instance_id, caller.profile_id) => BrowserBridgeResponse {
+                        version: PROTOCOL_VERSION_V1,
+                        request_id: req.request_id.clone(),
+                        status: ResponseStatus::Ok,
+                        task_id: Some(task.task_id.clone()),
+                        task_state: Some(task.state),
+                        revision: Some(DecimalU64(task.revision)),
+                        durable: Some(true),
+                        handoff_token: None,
+                        expires_at: None,
+                        data: Some(serde_json::to_value(task.to_snapshot()).unwrap_or_default()),
+                        error: None,
+                    },
+                    Some(_) => BrowserBridgeResponse::error(&req.request_id, ErrorCode::PermissionDenied, "Task belongs to another caller", false, None),
+                    None => BrowserBridgeResponse::error(&req.request_id, ErrorCode::NotFound, "Task not found", false, None),
+                }
+            }
+            "task.control" => {
+                let task_id = req.payload["task_id"].as_str().unwrap_or_default().to_string();
+                let expected_revision = req.payload["expected_revision"].as_str()
+                    .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                let action = req.payload["action"].as_str().unwrap_or_default();
+                let op = match action {
+                    "pause" => ControlOp::Pause,
+                    "resume" => ControlOp::Resume,
+                    "cancel" => ControlOp::Cancel,
+                    "retry" => ControlOp::Retry,
+                    "remove_record" => ControlOp::RemoveRecord,
+                    "delete_files" => ControlOp::DeleteFiles,
+                    _ => return BrowserBridgeResponse::error(&req.request_id, ErrorCode::InvalidRequest, "Unknown control action", false, None),
+                };
+                let caller = self.bridge_caller(&authed_instance_id, &authed_profile_id);
+                self.coordinator.control_task(&caller, &req.request_id, &task_id, expected_revision, op, now_epoch_ms)
+            }
             _ => BrowserBridgeResponse::error(req.request_id, ErrorCode::InvalidRequest, "Unsupported op in dispatch", false, None),
+        }
+    }
+
+    /// Builds a least-privilege CallerScope for an authenticated native-extension session.
+    /// Browser data/control ops receive no DeleteFiles capability.
+    fn bridge_caller(&self, instance_id: &str, profile_id: &str) -> CallerScope {
+        CallerScope {
+            os_user: "native-extension-session".to_string(),
+            origin_kind: CallerOriginKind::NativeExtension,
+            instance_id: instance_id.to_string(),
+            profile_id: profile_id.to_string(),
+            capabilities: vec![CapabilityScope::Read, CapabilityScope::Add, CapabilityScope::Control],
         }
     }
 
