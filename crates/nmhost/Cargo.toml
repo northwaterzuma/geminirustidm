@@ -1,0 +1,19 @@
+[package]
+name = "rustcatch-nmhost"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "rustcatch-nmhost"
+path = "src/main.rs"
+
+[dependencies]
+mdm-ipc.workspace = true
+mdm-app.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hmac.workspace = true
+hex.workspace = true

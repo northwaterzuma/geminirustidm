@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "RustCatch Download & Media Bridge",
+  "version": "1.0.0",
+  "description": "IDM-style two-phase download handoff and unified media sniffer (with optional Cat-Catch API compatibility) for RustCatch.",
+  "permissions": [
+    "downloads",
+    "nativeMessaging",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "webRequest",
+    "contextMenus"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "RustCatch 资源与下载面板"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["page.js", "video.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
