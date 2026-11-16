@@ -37,7 +37,14 @@ impl SourceValidator {
         if self.content_encoding != "identity" {
             return false;
         }
-        self.total_bytes.is_some() && (self.is_strong_etag || self.last_modified.is_some())
+        if self.total_bytes.is_none() {
+            return false;
+        }
+        // A weak ETag is never a strong validator; do not fall back to Last-Modified.
+        if self.etag.is_some() {
+            return self.is_strong_etag;
+        }
+        self.last_modified.is_some()
     }
 
     /// Checks whether a subsequent response validator matches the recorded baseline validator.
