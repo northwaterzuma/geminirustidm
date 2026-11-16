@@ -3,12 +3,12 @@
 ```yaml
 project: RustCatch
 spec_version: "1.0"
-updated_at_utc: "2026-11-16T10:20:00Z"
+updated_at_utc: "2026-11-16T10:30:40Z"
 task_id: P0-T02 / P1-T01 (build unblock + real Rust tests)
 status: launch_build_verified_needs_env_for_runtime_acceptance
-repo_path: C:/Users/admin/WorkBuddy/spaces/2026_11_16_01-40-43/rustcatch
+repo_path: https://github.com/northwaterzuma/rustcatch (branch rustcatch/dev-v1; local clone C:/Users/admin/WorkBuddy/2026-11-16-01-42-58/rustcatch)
 branch: rustcatch/dev-v1
-commit: 3066a4e58eecb2d39ff49a6a181c462c3e8476ff
+commit: fc120a782adc24257f5a83f9f298c0bdbe05b844
 upstream_base: 605a0c74e50361afe77bf1721d7172636bd5c57e
 worktree_status: clean at commit
 changed_files:
@@ -23,8 +23,8 @@ changed_files:
   - Cargo.lock
 requirements: [REQ-02, REQ-03, REQ-06, REQ-07, REQ-08, REQ-11]
 tests_run:
-  - "GitHub Actions run 43845781548 / commit 40167f3: ALL 4 jobs SUCCESS"
-  - "cargo test --workspace on windows-latest (msvc), ubuntu-latest, macos-latest: 45 passed, 0 failed on each"
+  - "GitHub Actions run 43848343635 / commit fc120a7: ALL 4 jobs SUCCESS (latest verified)"
+  - "cargo test --workspace on windows-latest (msvc), ubuntu-latest, macos-latest: 54 passed, 0 failed on each"
   - "cargo build --release --workspace on all 3 targets: SUCCESS"
   - "cargo +stable check --workspace --all-targets local: PASS"
   - "Python offline contract suite: PASS (schema/protocol simulation only, NOT Rust product tests)"
@@ -35,8 +35,9 @@ tests_not_run:
   - "TEST-06A/B/C/D + 07A: needs_env (authorized YouTube samples)"
   - "TEST-11B/13A/B/14A/18A/19A: needs_env (installer VM, controlled FTP/TLS/AD servers, macOS/Linux VMs)"
 evidence_paths:
-  - evidence/CI-40167f3/RESULTS.md
+  - evidence/CI-fc120a7/RESULTS.md
   - evidence/CI-3066a4e/RESULTS.md
+  - evidence/CI-40167f3/RESULTS.md
   - .github/workflows/ci.yml
   - evidence/P0/ ... evidence/P5-T04/ (prior-session artifacts, unverified claims)
   - crates/engine/tests/product_logic.rs
@@ -52,7 +53,7 @@ decisions:
 blockers:
   - "Local cargo test cannot link (no gcc/dlltool); GitHub CI is authoritative."
   - "No Windows GUI VM / browser VM / authorized YouTube sample / code-signing credential → corresponding acceptance gates remain needs_env."
-next_action: "Native host handoff ops wired and tested (45 Rust tests green on 3 platforms). Next: (1) add real Rust tests for capture/HLS-DASH and media pipeline subprocess argv/error handling; (2) keep P5 needs_env items documented; (3) obtain Windows GUI VM / browser VM / authorized YouTube samples for runtime acceptance."
+next_action: "54 Rust tests green on 3 platforms (incl. TEST-05B/06/07A/12A media safety tests). Next: (1) keep P5 needs_env items documented; (2) obtain Windows GUI VM / browser VM / authorized YouTube samples for runtime acceptance."
 ```
 
 ## 最近完成（真实）
@@ -76,7 +77,7 @@ next_action: "Native host handoff ops wired and tested (45 Rust tests green on 3
 
 ## 接手者立即执行
 
-1. 核对 `git status` 与上方 commit；查看 GitHub Actions run 43844950258 的三个 Rust 矩阵 job 结论。
+1. 核对 `git status` 与上方 commit；查看 GitHub Actions run 43848343635（commit fc120a7）的三个 Rust 矩阵 job 结论，证据见 `evidence/CI-fc120a7/RESULTS.md`。
 2. 若失败，读真实日志修根因；若通过，把 job ID 与通过时间写入证据目录并更新 TASKS.md。
 3. 继续 P5 时坚持同一标准：真实产品函数 + 真实测试 + 真实证据，缺环境标 needs_env。
 
@@ -97,3 +98,9 @@ GitHub Actions run 43845781548（commit 40167f3）全部 4 个 job success：
 - 新增 10 个端到端 Rust 测试（crates/nmhost/tests/handoff_protocol.rs），GitHub CI 三平台全部通过。
 - 真实测试总数 45 passed / 0 failed（见 evidence/CI-3066a4e/RESULTS.md）。
 - 这仍非浏览器真机验收；TEST-04C/05C 保持 needs_env。
+
+## 最新构建门槛（覆盖上方历史数字）
+
+GitHub Actions run 43848343635（commit fc120a7）全部 4 个 job success，单平台 **54 passed / 0 failed**，
+三平台 cargo check / test / build --release 均完成并上传产物。证据：`evidence/CI-fc120a7/RESULTS.md`。
+上方出现的 35 / 45 为历史提交当时的通过数，以本段 54 为准。仍非真机验收，needs_env 项不变。
