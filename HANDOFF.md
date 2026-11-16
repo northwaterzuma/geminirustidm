@@ -3,12 +3,12 @@
 ```yaml
 project: RustCatch
 spec_version: "1.0"
-updated_at_utc: "2026-11-16T11:27:00Z"
-task_id: P0-T02 / P1-T01 (build unblock + real Rust tests)
-status: launch_build_verified_needs_env_for_runtime_acceptance
+updated_at_utc: "2026-11-16T13:33:20Z"
+task_id: P3-T02 / P4-T02 (verified component release)
+status: component_release_built_online_download_needs_user_acceptance
 repo_path: https://github.com/northwaterzuma/rustcatch (branch rustcatch/dev-v1; local clone C:/Users/admin/WorkBuddy/2026-11-16-01-42-58/rustcatch)
 branch: rustcatch/dev-v1
-commit: 56d638b2ca5de89b470b17c89fd4f350281bee77
+commit: 96f48dcaf637a553af270c27bfb2626a3ca38e19
 upstream_base: 605a0c74e50361afe77bf1721d7172636bd5c57e
 worktree_status: clean at commit
 changed_files:
@@ -39,6 +39,7 @@ evidence_paths:
   - evidence/CI-fc120a7/RESULTS.md
   - evidence/CI-3066a4e/RESULTS.md
   - evidence/CI-40167f3/RESULTS.md
+  - evidence/RELEASE-v0.1.3-components/RESULTS.md
   - .github/workflows/ci.yml
   - evidence/P0/ ... evidence/P5-T04/ (prior-session artifacts, unverified claims)
   - crates/engine/tests/product_logic.rs
@@ -54,7 +55,7 @@ decisions:
 blockers:
   - "Local cargo test cannot link (no gcc/dlltool); GitHub CI is authoritative."
   - "No Windows GUI VM / browser VM / authorized YouTube sample / code-signing credential → corresponding acceptance gates remain needs_env."
-next_action: "54 Rust tests green on 3 platforms (incl. TEST-05B/06/07A/12A media safety tests). Next: (1) keep P5 needs_env items documented; (2) obtain Windows GUI VM / browser VM / authorized YouTube samples for runtime acceptance."
+next_action: "v0.1.3-components release contains resolved_verified components and passed 60 Rust tests on three platforms. Next: user accepts Windows GUI run with https://youtu.be/l7sCL3geF0U; only then mark online YouTube download as verified; continue remaining P5 needs_env items."
 ```
 
 ## 最近完成（真实）
@@ -177,3 +178,30 @@ build --release 均完成。证据：GitHub Actions run 页面。上一个稳定
 - 本地 `cargo +stable check --workspace --all-targets` 通过。
 - `wbhy4falshv1/main` CI run **43870407465**：4/4 jobs success；Windows job **60 passed / 0 failed**（新增 runner 测试 1 项、UI 测试 5 项）。证据：`evidence/CI-43870407465/RESULTS.md`。
 - 诊断版预发布标签 `v0.1.2-diagnostics`（指向 `14412c9`）；Release workflow run **43871553149** success。Windows 便携包 SHA-256 `2ac4f7ec81ee742b937461c99e3318531d87ceb46a3f4c91bc4bafabaaec864e`，地址：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.2-diagnostics
+
+## 组件随包分发与正式发布（2026-11-16T13:33Z）
+
+用户日志确认 `v0.1.2-diagnostics` 的唯一阻塞是 `COMPONENT_LOCK status is unresolved_do_not_execute`。本轮按“不伪造哈希、不调用系统 PATH”的规格约束，在 GitHub Actions 发布流程中解析并核验真实组件，而不是改仓库基线锁文件。
+
+本轮改动：
+
+- `.github/workflows/release.yml`：从 yt-dlp、Deno、BtbN FFmpeg 官方 release 下载资产；yt-dlp 用官方 `SHA2-256SUMS` 比对；所有组件用 `Get-FileHash -Algorithm SHA256` 计算包内真实哈希；生成 `resolved-COMPONENT_LOCK.json`；组件复制到 `dist/rustcatch-win64/components/`；用 resolved 锁替换包内 `COMPONENT_LOCK.json`。
+- `crates/app/src/runner.rs`：运行时优先读取 exe 同目录 `COMPONENT_LOCK.json`；输出模板去掉扩展名，避免 yt-dlp 自动补扩展变成双重扩展。
+- `crates/tools/src/proc.rs`：受控 argv 加入 `--js-runtimes deno:<locked deno path>`；`--proxy` 仅在本地 relay URL 非空时加入。
+- `crates/tools/tests/streams_and_proc.rs`：断言 Deno 运行时参数确实进入受控 argv。
+
+验证证据：
+
+- `wbhy4falshv1/main` CI run **43873418303**：4/4 jobs success；Windows、Ubuntu、macOS 三平台均 **60 passed / 0 failed**。
+- Release dry-run run **43875366720**：`workflow_dispatch` 在 `main` 上成功完成组件解析、哈希核验、打包和 artifact 上传；未发布 Release。
+- 正式标签 `v0.1.3-components` 指向 `96f48dc`；Release workflow run **43876092254**：所有步骤 success，包括 `Publish to GitHub Release`。
+- 发布资产 `rustcatch-win64-portable-unsigned-test.zip`：大小 203,283,038 bytes；GitHub digest 与本地复算 SHA-256 均为 `a5b5e29e2534fdf168b666a3ef2d6f72f7ed2354e2a82fe528dd911af983f6fa`。
+- 包内 `COMPONENT_LOCK.json` 实测 `status = resolved_verified`，组件集 `ytdlp-2026.10.26-deno-v2.9.8-ffmpeg-n9.0`；包内 yt-dlp、Deno、FFmpeg、ffprobe 实测 SHA-256 与锁文件逐项一致。
+- 完整证据：`evidence/RELEASE-v0.1.3-components/RESULTS.md`。
+- Release 地址：https://github.com/northwaterzuma/wbhy4falshv1/releases/tag/v0.1.3-components
+
+行为边界：
+
+- `ToolUnavailable / unresolved_do_not_execute` 的发布包输入问题已经解决。
+- 仍需用户在 Windows 真机解压运行、输入 `https://youtu.be/l7sCL3geF0U` 并观察日志，才能确认在线 YouTube 下载真正完成；在此之前 TEST-06 系列仍为 needs_env，不能写成通过。
+

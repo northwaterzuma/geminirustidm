@@ -423,3 +423,11 @@ next_action: "读取工作区规则，核对 SOURCE_LOCK 和既有状态，开�
 
 最终评审检查 REQ-01～19 的完整矩阵和实际交付；既未实现又仅写成“延期”的 full_parity 项不能算 done。optional 可以不采用；是否对外发布、签名或提交商店按当前实际授权执行，与完成本地开发及测试区分。
 
+## 5. 本轮增量状态（2026-11-16T13:33Z）
+
+- 组件发布链：`已实现，GitHub CI/Release 验证通过`；指向提交 `96f48dc`，tag `v0.1.3-components`。
+- 已验证范围：CI run `43873418303` 4/4 jobs success，Windows/Ubuntu/macOS 各 60 passed / 0 failed；Release dry-run `43875366720` success；正式 Release run `43876092254` success。
+- 发布包实测：`COMPONENT_LOCK.json` 为 `resolved_verified`，包内含已核验 yt-dlp、Deno、FFmpeg、ffprobe；发布资产 SHA-256 与 GitHub digest 一致。
+- 仍未通过：在线 YouTube 真机下载验收（TEST-06 系列）继续 `needs_env`，必须由用户运行新包并确认日志与输出文件后才能改为通过。
+- 证据：`evidence/RELEASE-v0.1.3-components/RESULTS.md`；`HANDOFF.md` 组件随包分发与正式发布章节。
+
